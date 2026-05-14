@@ -6,14 +6,28 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return res.status(500).json({ error: "GEMINI_API_KEY belum terbaca di Vercel." });
+    return res.status(500).json({
+      error: "GEMINI_API_KEY belum terbaca di Vercel."
+    });
   }
 
   try {
-    const model = req.query.model || "gemini-2.5-flash";
+    let model = req.query.model || "gemini-2.5-flash";
     const method = req.query.method || "generateContent";
 
-    const endpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:${method}?key=${apiKey}`;
+    // Paksa model preview lama ke model stabil
+    if (
+      model.includes("preview") ||
+      model.includes("09-2025") ||
+      model === "gemini-2.5-flash-preview-09-2025"
+    ) {
+      model = "gemini-2.5-flash";
+    }
+
+    // Untuk generateContent pakai v1beta agar payload lama tetap cocok
+    const apiVersion = method === "generateContent" ? "v1beta" : "v1beta";
+
+    const endpoint = `https://generativelanguage.googleapis.com/${apiVersion}/models/${model}:${method}?key=${apiKey}`;
 
     const response = await fetch(endpoint, {
       method: "POST",
@@ -25,7 +39,11 @@ module.exports = async function handler(req, res) {
 
     const data = await response.json();
 
-    return res.status(response.status).json(data);
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+
+    return res.status(200).json(data);
   } catch (error) {
     return res.status(500).json({
       error: "Function error",
