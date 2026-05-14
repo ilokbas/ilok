@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const model = req.query.model || "gemini-2.5-flash-preview-09-2025";
+    const model = req.query.model || "gemini-2.5-flash";
     const method = req.query.method || "generateContent";
 
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}?key=${apiKey}`;
