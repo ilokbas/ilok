@@ -584,7 +584,7 @@
         };
 
         window.showToast = function(msg, isError = false) {
-            if (isError && (msg.includes("API") || msg.includes("fetch") || msg.includes("JSON") || msg.includes("input") || msg.includes("Failed"))) return; 
+            //if (isError && (msg.includes("API") || msg.includes("fetch") || msg.includes("JSON") || msg.includes("input") || msg.includes("Failed"))) return; 
             const t = document.getElementById('toast'); const i = document.getElementById('toastIcon'); if(!t || !i) return;
             if (isError) { t.classList.add('bg-rose-500'); t.classList.remove('bg-gray-900'); i.className = 'fa-solid fa-triangle-exclamation text-white'; } 
             else { t.classList.remove('bg-rose-500'); t.classList.add('bg-gray-900'); i.className = 'fa-solid fa-circle-check text-white'; }
