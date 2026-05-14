@@ -681,7 +681,7 @@
                     const p = { contents: [{ role: "user", parts: parts }], generationConfig: { responseMimeType: "application/json" } }; 
                     if(useGoogle) p.tools = [{ "google_search": {} }];
                     
-                    const res = await window.fetchWithRetry(`/api/gemini?model=gemini-2.5-flash-preview-09-2025&method=generateContent`, { 
+                    const res = await window.fetchWithRetry(`/api/gemini?model=gemini-2.5-flash&method=generateContent`, { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(p) 
