@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZHR Engine v9.0 - Zenith Apex I2I</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        appBg: '#fafafa',      
+                        cardBg: '#ffffff',     
+                        textDark: '#18181b',   
+                        textMuted: '#71717a',  
+                        borderLight: '#f4f4f5',
+                        accentLime: '#d9f95f', 
+                        accentDark: '#27272a'  
+                    },
+                    animation: {
+                        'spin-slow': 'spin 3s linear infinite',
+                        'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    }
+                },
+                fontFamily: {
+                    sans: ['Outfit', 'sans-serif'],
+                    mono: ['Space Mono', 'monospace'],
+                    grotesk: ['Space Grotesk', 'sans-serif']
+                }
+            }
+        };
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&family=Space+Grotesk:wght@400;700;800&display=swap');
+        
+        body { font-family: 'Outfit', sans-serif; background-color: #fafafa; color: #18181b; overflow: hidden; margin: 0; padding: 0; }
+        
+        /* Lighter, cleaner main container */
+        .app-container { 
+            background-color: #ffffff; 
+            border-radius: 1.5rem; 
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05); 
+            border: 1px solid #f4f4f5;
+            margin: 1rem auto; 
+            height: calc(100vh - 2rem); 
+            overflow: hidden; 
+            display: flex; 
+            flex-direction: column; 
+            position: relative; 
+        }
+
+        .scrollbar-custom::-webkit-scrollbar { width: 4px; height: 4px; } 
+        .scrollbar-custom::-webkit-scrollbar-track { background: transparent; } 
+        .scrollbar-custom::-webkit-scrollbar-thumb { background: #e4e4e7; border-radius: 10px; } 
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover { background: #d4d4d8; }
+
+        /* GENERAL FORMS (UNIFIED LIGHT THEME) */
+        .label-title { font-size: 0.65rem; color: #71717a; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center; }
+        
+        input[type="text"], input[type="password"], input[type="number"], select, textarea { 
+            width: 100%; background-color: #fafafa !important; border: 1px solid #f4f4f5 !important; color: #18181b; border-radius: 0.75rem !important; padding: 0.75rem 1rem !important; font-size: 0.85rem !important; font-weight: 500; transition: all 0.2s ease; outline: none; 
+        }
+        input:focus, select:focus, textarea:focus { background-color: #ffffff !important; border-color: #e4e4e7 !important; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        input:disabled, textarea:disabled { opacity: 0.5; cursor: not-allowed; background-color: #f4f4f5 !important; }
+        
+        select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml;utf8,<svg fill='%2371717a' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>"); background-repeat: no-repeat; background-position-x: calc(100% - 12px); background-position-y: 50%; cursor: pointer; }
+        select option { background-color: #ffffff; color: #18181b; font-size: 0.85rem; }
+        
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .custom-cb { appearance: none; width: 1.1rem; height: 1.1rem; background-color: #fafafa; border: 1px solid #e4e4e7; border-radius: 0.25rem; cursor: pointer; position: relative; vertical-align: middle; transition: 0.2s; }
+        .custom-cb:checked { background-color: #18181b; border-color: #18181b; }
+        .custom-cb:checked::after { content: ''; position: absolute; left: 5px; top: 2px; width: 4px; height: 8px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+        .btn-action { width: 100%; padding: 0.85rem; border-radius: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; font-size: 0.7rem; transition: all 0.2s; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 0.5rem; border: none; }
+        .btn-solid { background-color: #18181b; color: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .btn-solid:hover { background-color: #27272a; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.08); }
+        .btn-solid:disabled { background-color: #e4e4e7; color: #a1a1aa; transform: none; box-shadow: none; cursor: not-allowed; }
+        
+        .upload-zone-dashed { background: #fafafa; border: 1px dashed #d4d4d8; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; transition: all 0.2s ease; }
+        .upload-zone-dashed:hover { border-color: #a1a1aa; background: #f4f4f5; }
+        .upload-zone-clean { background: #fafafa; border: 1px solid #f4f4f5; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; position: relative; overflow: hidden; transition: all 0.2s ease; border-radius: 1rem; }
+        .upload-zone-clean:hover { border-color: #e4e4e7; background: #f4f4f5; }
+        .preview-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 10; opacity: 1 !important; filter: none !important; transition: 0.3s; background-color: transparent; }
+        
+        /* Layout Layering */
+        .view-layer { position: absolute; inset: 0; display: none; width: 100%; height: 100%; flex-direction: column; background: #ffffff; }
+        .view-layer.active { display: flex; }
+        @media (min-width: 768px) { .view-layer { flex-direction: row; } }
+        
+        .panel-left { width: 100%; max-height: 50%; overflow-y: auto; background: transparent; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; flex-shrink: 0; border-right: 1px solid #f4f4f5; }
+        .panel-right { flex: 1; background: #fafafa; overflow-y: auto; padding: 1.5rem; position: relative; }
+        @media (min-width: 768px) { .panel-left { width: 400px; max-height: 100%; padding: 2rem; } .panel-right { padding: 2.5rem; } }
+
+        /* Pill Navigation Bar */
+        .nav-pill-container { background: #f4f4f5; padding: 0.25rem; border-radius: 2rem; display: flex; gap: 0.25rem; }
+        .nav-tab { color: #71717a; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; padding: 0.6rem 1rem; border-radius: 1.5rem; transition: all 0.2s; cursor: pointer; white-space: nowrap; border: none; background: transparent; display: flex; align-items: center; gap: 0.4rem; }
+        .nav-tab:hover { color: #18181b; }
+        .nav-tab.active { color: #18181b; background-color: #ffffff; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+
+        /* Light Theme Scene Cards */
+        .scene-card { background: #ffffff; border: 1px solid #f4f4f5; border-radius: 1rem; overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .scene-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.04); border-color: #e4e4e7; }
+        .aspect-16-9 { aspect-ratio: 16/9; } .aspect-9-16 { aspect-ratio: 9/16; } .aspect-1-1 { aspect-ratio: 1/1; } .aspect-4-5 { aspect-ratio: 4/5; } .aspect-1-91 { aspect-ratio: 1.91/1; }
+        
+        .text-link { font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.6rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.4rem; background: #fafafa; border: 1px solid #f4f4f5; padding: 0.5rem; border-radius: 0.5rem; color: #52525b; width: 100%; }
+        .text-link:hover { background: #f4f4f5; color: #18181b; border-color: #e4e4e7; }
+        
+        .spinner { border: 2px solid #f4f4f5; border-top: 2px solid #18181b; border-radius: 50%; width: 18px; height: 18px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .shimmer { background: linear-gradient(90deg, #fafafa 25%, #ffffff 50%, #fafafa 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        /* FLOATING SMALL POPUP WIDGET */
+        #agentPopup { transform: translateY(150%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        #agentPopup.active { transform: translateY(0); }
+        .agent-node { display: flex; align-items: center; gap: 0.75rem; font-size: 0.65rem; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 1px; transition: 0.3s; }
+        .agent-node.active-node { color: #18181b; }
+        .agent-node.active-node i { color: #18181b; animation: spin 1s linear infinite; }
+        .agent-node.done-node { color: #10b981; }
+        .agent-node.done-node i { color: #10b981; animation: none; }
+
+        /* IMAGE REVIEW MODAL */
+        #imageReviewModal { transition: opacity 0.3s ease-in-out; }
+    </style>
+</head>
+<body class="p-0 md:p-6 flex items-center justify-center">
+
+    <!-- FLOATING SMALL POPUP WIDGET -->
+    <div id="agentPopup" class="fixed bottom-6 right-6 w-72 bg-[#ffffff] border border-[#f4f4f5] rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] p-5 z-[9999] flex flex-col gap-4">
+        <div class="flex items-center gap-3 border-b border-[#f4f4f5] pb-3">
+            <i class="fa-solid fa-microchip text-gray-900 animate-pulse"></i>
+            <h4 class="text-[10px] font-bold text-gray-900 uppercase tracking-widest">Multi-Agent Core</h4>
+        </div>
+        <div class="space-y-3" id="popupAgentList">
+            <div id="nodeAnalyst" class="agent-node"><i class="fa-solid fa-circle-notch"></i><span>Analyst Agent</span></div>
+            <div id="nodePlanner" class="agent-node"><i class="fa-solid fa-circle-notch"></i><span>Planner Agent</span></div>
+            <div id="nodeCreative" class="agent-node"><i class="fa-solid fa-circle-notch"></i><span>Creative Agent</span></div>
+            <div id="nodeDev" class="agent-node"><i class="fa-solid fa-circle-notch"></i><span>Developer Agent</span></div>
+            <div id="nodeExec" class="agent-node"><i class="fa-solid fa-circle-notch"></i><span>Executor Agent</span></div>
+        </div>
+    </div>
+
+    <!-- IMAGE REVIEW MODAL (LIGHTBOX) -->
+    <div id="imageReviewModal" class="fixed inset-0 z-[999999] hidden bg-gray-900/95 backdrop-blur-sm flex-col items-center justify-center p-4 md:p-8 opacity-0">
+        <button onclick="window.closeImageReview()" class="absolute top-6 right-6 md:top-8 md:right-8 text-white hover:text-gray-300 text-3xl transition-colors"><i class="fa-solid fa-xmark"></i></button>
+        <div class="relative w-full max-w-4xl flex flex-col items-center justify-center">
+            <img id="reviewImageSrc" class="w-full max-h-[75vh] object-contain rounded-xl shadow-2xl bg-black/20">
+            <div class="mt-6 flex justify-center w-full">
+                <button id="reviewDownloadBtn" class="bg-white hover:bg-gray-100 text-gray-900 font-extrabold py-3 px-8 rounded-full tracking-widest uppercase shadow-lg transition-all flex items-center text-xs"><i class="fa-solid fa-download mr-2"></i> UNDUH GAMBAR RESOLUSI TINGGI</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="app-container w-full max-w-[1500px]">
+        
+        <header class="w-full h-[70px] flex items-center justify-between px-6 shrink-0 z-40 bg-white/80 backdrop-blur-md relative border-b border-gray-100">
+            <div class="flex items-center space-x-6 h-full">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center shadow-sm text-white">
+                        <i class="fa-solid fa-layer-group text-sm"></i>
+                    </div>
+                    <span class="font-bold text-gray-900 tracking-widest text-xs uppercase hidden md:block">ZHR Core</span>
+                </div>
+                
+                <div class="nav-pill-container hidden md:flex">
+                    <button class="nav-tab active" data-tab="dashboard" onclick="window.switchTab('dashboard')"><i class="fa-solid fa-clapperboard"></i> Storyboard</button>
+                    <button class="nav-tab" data-tab="podcast" onclick="window.switchTab('podcast')"><i class="fa-solid fa-microphone-lines"></i> Podcast Deck</button>
+                    <button class="nav-tab" data-tab="product" onclick="window.switchTab('product')"><i class="fa-solid fa-box-open"></i> Commercial</button>
+                    <button class="nav-tab" data-tab="contentProduct" onclick="window.switchTab('contentProduct')"><i class="fa-solid fa-mobile-screen"></i> Content Product</button>
+                    <button class="nav-tab" data-tab="production" onclick="window.switchTab('production')"><i class="fa-solid fa-satellite-dish"></i> Monitor Hub</button>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div class="hidden lg:flex items-center px-3 py-1.5 bg-gray-50 rounded-full border border-gray-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse mr-2"></span>
+                    <span class="text-[9px] text-gray-500 font-mono uppercase tracking-widest font-bold">Apex Active</span>
+                </div>
+                <button onclick="window.switchTab('login')" id="navLogin" class="w-8 h-8 flex items-center justify-center bg-gray-50 rounded-full text-gray-400 hover:text-gray-900 border border-gray-100 transition-colors"><i class="fa-solid fa-lock text-xs"></i></button>
+            </div>
+        </header>
+
+        <header class="md:hidden w-full flex items-center justify-center p-3 z-30 shrink-0 bg-white border-b border-gray-100">
+            <div class="nav-pill-container overflow-x-auto w-full scrollbar-hide bg-transparent">
+                <button class="nav-tab active" data-tab="dashboard" onclick="window.switchTab('dashboard')"><i class="fa-solid fa-clapperboard"></i></button>
+                <button class="nav-tab" data-tab="podcast" onclick="window.switchTab('podcast')"><i class="fa-solid fa-microphone-lines"></i></button>
+                <button class="nav-tab" data-tab="product" onclick="window.switchTab('product')"><i class="fa-solid fa-box-open"></i></button>
+                <button class="nav-tab" data-tab="contentProduct" onclick="window.switchTab('contentProduct')"><i class="fa-solid fa-mobile-screen"></i></button>
+                <button class="nav-tab" data-tab="production" onclick="window.switchTab('production')"><i class="fa-solid fa-satellite-dish"></i></button>
+            </div>
+        </header>
+
+        <!-- MAIN WORKSPACE -->
+        <div class="flex-1 relative overflow-hidden" id="mainScrollArea">
+            
+            <!-- LAYER 0: LOGIN -->
+            <div id="viewLogin" class="view-layer active z-[60] flex-col items-center justify-center bg-white">
+                <div class="bg-white p-10 w-full max-w-sm rounded-[2rem] border border-gray-100 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.05)] text-center">
+                    <div class="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-gray-900"><i class="fa-solid fa-fingerprint text-2xl"></i></div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-2 tracking-wide font-outfit uppercase">System Access</h2>
+                    <p class="text-[10px] text-gray-500 mb-8 font-mono">Authentication required.</p>
+                    <div class="space-y-4">
+                        <input type="password" id="loginPassword" placeholder="••••••••" class="text-center text-lg tracking-[0.5em] py-3 bg-gray-50" onkeypress="if(event.key === 'Enter') window.checkLogin()">
+                        <button onclick="window.checkLogin()" class="btn-action btn-solid py-3"><i class="fa-solid fa-unlock-keyhole mr-1"></i> Unlock Engine</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LAYER 1: DASHBOARD -->
+            <div id="viewDashboard" class="view-layer">
+                <div class="panel-left scrollbar-custom">
+                    <div><h2 class="text-lg font-extrabold text-gray-900 tracking-wide font-outfit">Storyboard Builder</h2><p class="text-[10px] text-gray-500 font-mono uppercase mt-1">Narrative Parameters</p></div>
+                    <div class="space-y-4 mt-2">
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div>
+                                <label class="label-title">Judul / Hook Utama <button onclick="window.autoSuggestDashTitle()" class="ml-2 px-2.5 py-1 bg-gray-100 text-gray-800 rounded-md text-[9px] font-bold uppercase tracking-widest hover:bg-gray-200 transition-all" type="button"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Auto Suggest</button></label>
+                                <input type="text" id="dashTitle" placeholder="Ketik ide cerita atau klik Auto Suggest...">
+                                <div id="dashTitleSuggestions" class="hidden flex-col gap-2 mt-2"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2"><label class="label-title">Format Penceritaan</label><select id="dashPitch" class="populate-select" data-type="pitch"></select></div>
+                                <div class="col-span-2"><label class="label-title">Target Audiens</label><select id="dashAudience" class="populate-select" data-type="audience"></select></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2"><label class="label-title">Tone Atmosfer</label><select id="dashTone" class="populate-select" data-type="tone"></select></div>
+                                <div class="col-span-2"><label class="label-title">Lingkungan Latar</label><select id="dashEnv" class="populate-select" data-type="env"></select></div>
+                                <div class="col-span-2"><label class="label-title">Cahaya & Efek Spesial</label><select id="dashLight" class="populate-select" data-type="lighting"></select></div>
+                                <div class="col-span-2"><label class="label-title">Gaya Render Visual</label><select id="dashStyle" class="populate-select" data-type="style"></select></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div><label class="label-title">Audio & Suara Narator</label><div class="grid grid-cols-2 gap-2 mb-2"><select id="dashLang" class="populate-select" data-type="language"></select><select id="dashAccent" class="populate-select" data-type="accent"></select></div><select id="dashVoice" class="populate-select" data-type="voice"></select></div>
+                            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50">
+                                <div><label class="label-title">Jumlah Scene</label><input type="number" id="dashCount" value="6" min="1" max="100" class="text-center"></div>
+                                <div><label class="label-title">Rasio Format</label><select id="dashRatio" class="text-center populate-select" data-type="ratio"></select></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                            <label class="label-title mb-2 flex justify-between items-center"><span>DNA Karakter</span></label>
+                            <div id="boxChar" class="upload-zone-dashed h-32 bg-gray-50" onclick="document.getElementById('charInput').click()">
+                                <div id="prompt-charInput" class="flex flex-col items-center z-10"><i class="fa-solid fa-cloud-arrow-up text-2xl mb-2 text-gray-400"></i><span class="text-[9px] text-gray-500 font-bold uppercase tracking-widest">Pilih Gambar</span></div>
+                                <img id="prev-charInput" class="preview-img hidden rounded-xl" style="object-fit: contain;">
+                            </div>
+                            <input type="file" id="charInput" class="hidden" accept="image/*">
+                        </div>
+                        <button id="btnGenDash" onclick="window.generateContent('dashboard')" class="btn-action btn-solid py-3 text-xs mt-2"><span id="txtGenDash">Jalankan Multi-Agent</span></button>
+                    </div>
+                </div>
+                <div class="panel-right flex items-center justify-center opacity-30 pointer-events-none"><div class="text-center"><div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 shadow-sm"><i class="fa-solid fa-satellite-dish text-2xl text-gray-300"></i></div><h3 class="text-lg font-bold font-mono tracking-widest uppercase text-gray-800">System Linked</h3><p class="text-xs text-gray-500 mt-2 font-medium">Output renders exclusively in Monitor Hub.</p></div></div>
+            </div>
+
+            <!-- LAYER 2: PODCAST -->
+            <div id="viewPodcast" class="view-layer">
+                <div class="panel-left scrollbar-custom">
+                    <div><h2 class="text-lg font-extrabold text-gray-900 tracking-wide font-outfit">Podcast Deck</h2><p class="text-[10px] text-gray-500 font-mono uppercase mt-1">Audio-Visual Parameters</p></div>
+                    <div class="space-y-4 mt-2">
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                            <div class="flex items-center justify-between mb-2"><label class="label-title mb-0">Topik Pembahasan</label><div class="flex items-center"><span class="text-[9px] text-gray-900 font-bold uppercase tracking-widest mr-2">Auto-Topic</span><input type="checkbox" id="podAutoTop" checked class="custom-cb" onchange="document.getElementById('podTopic').disabled = this.checked;"></div></div>
+                            <input type="text" id="podTopic" placeholder="Isi manual jika Auto mati..." class="disabled:opacity-40" disabled>
+                            <div id="podTopicSuggestions" class="hidden flex-col gap-2 mt-2"></div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2"><label class="label-title">Format Obrolan</label><select id="podPitch" class="populate-select" data-type="pitch"></select></div>
+                                <div class="col-span-2"><label class="label-title">Gaya Podcast</label><select id="podStyle" class="populate-select" data-type="pod_style"></select></div>
+                                <div class="col-span-2"><label class="label-title">Gaya Render Visual</label><select id="podArt" class="populate-select" data-type="style"></select></div>
+                                <div class="col-span-2"><label class="label-title">Desain Studio Set</label><select id="podStudio" class="populate-select" data-type="pod_studio"></select></div>
+                                <div class="col-span-2"><label class="label-title block w-full">Logat Host & Tamu</label><div class="grid grid-cols-2 gap-2"><select id="hostAccent" class="text-center populate-select" data-type="accent"></select><select id="guestAccent" class="text-center populate-select" data-type="accent"></select></div></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50">
+                                <div><label class="label-title">Scene</label><input type="number" id="podCount" value="6" class="text-center"></div>
+                                <div><label class="label-title">Rasio Video</label><select id="podRatio" class="text-center populate-select" data-type="ratio"></select></div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                            <label class="label-title mb-2">DNA Sync (Wajib)</label>
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div id="boxHost" class="upload-zone-clean h-20 bg-gray-50 border border-gray-100" onclick="document.getElementById('podInHost').click()">
+                                    <div id="prompt-podInHost" class="flex flex-col items-center z-10"><i class="fa-solid fa-user-tie text-xl mb-1 text-gray-400"></i><span class="text-[8px] text-gray-500 font-bold tracking-widest">HOST</span></div>
+                                    <img id="prev-podInHost" class="preview-img hidden rounded-lg" style="object-fit: contain;">
+                                </div><input type="file" id="podInHost" class="hidden" accept="image/*">
+                                <div id="boxGuest" class="upload-zone-clean h-20 bg-gray-50 border border-gray-100" onclick="document.getElementById('podInGuest').click()">
+                                    <div id="prompt-podInGuest" class="flex flex-col items-center z-10"><i class="fa-solid fa-user text-xl mb-1 text-gray-400"></i><span class="text-[8px] text-gray-500 font-bold tracking-widest">TAMU</span></div>
+                                    <img id="prev-podInGuest" class="preview-img hidden rounded-lg" style="object-fit: contain;">
+                                </div><input type="file" id="podInGuest" class="hidden" accept="image/*">
+                                <div id="boxProdPod" class="upload-zone-clean h-20 bg-gray-50 border border-gray-100" onclick="document.getElementById('podInProd').click()">
+                                    <div id="prompt-podInProd" class="flex flex-col items-center z-10"><i class="fa-solid fa-box text-xl mb-1 text-gray-400"></i><span class="text-[8px] text-gray-500 font-bold tracking-widest">PRODUK</span></div>
+                                    <img id="prev-podInProd" class="preview-img hidden rounded-lg" style="object-fit: contain;">
+                                    <div id="load-podInProd" class="hidden absolute inset-0 bg-white/90 flex-col items-center justify-center z-20"><div class="spinner text-gray-900"></div></div>
+                                </div><input type="file" id="podInProd" class="hidden" accept="image/*">
+                            </div>
+                            <textarea id="podDesc" rows="3" placeholder="Detail produk..." class="resize-none text-xs"></textarea>
+                        </div>
+                        <button id="btnGenPod" onclick="window.generateContent('podcast')" class="btn-action btn-solid py-3 text-xs mt-2"><span id="txtGenPod">Jalankan Multi-Agent</span></button>
+                    </div>
+                </div>
+                <div class="panel-right flex items-center justify-center opacity-30 pointer-events-none"><div class="text-center"><div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 shadow-sm"><i class="fa-solid fa-satellite-dish text-2xl text-gray-300"></i></div><h3 class="text-lg font-bold font-mono tracking-widest uppercase text-gray-800">System Linked</h3><p class="text-xs text-gray-500 mt-2 font-medium">Output renders exclusively in Monitor Hub.</p></div></div>
+            </div>
+
+            <!-- LAYER 3: PRODUCT -->
+            <div id="viewProduct" class="view-layer">
+                <div class="panel-left scrollbar-custom">
+                    <div><h2 class="text-lg font-extrabold text-gray-900 tracking-wide font-outfit">Commercial Studio</h2><p class="text-[10px] text-gray-500 font-mono uppercase mt-1">High-end product rendering</p></div>
+                    <div class="space-y-4 mt-2 flex-1">
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                            <label class="label-title mb-2"><span>Product DNA Scan</span><i class="fa-solid fa-bolt text-gray-400"></i></label>
+                            <div id="boxProdStudio" class="upload-zone-clean h-40 mb-3 bg-gray-50 border border-dashed border-gray-200" onclick="document.getElementById('prodInStudio').click()">
+                                <div id="prompt-prodInStudio" class="flex flex-col items-center z-10"><i class="fa-solid fa-box-open text-3xl text-gray-300 mb-2"></i><span class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">Upload Product</span></div>
+                                <img id="prev-prodInStudio" class="preview-img hidden rounded-xl object-contain bg-white">
+                                <div id="load-prodInStudio" class="hidden absolute inset-0 bg-white/90 flex-col items-center justify-center z-20"><div class="spinner text-gray-900"></div><p class="text-[9px] mt-2 text-gray-600 uppercase tracking-widest font-bold font-mono">Scanning...</p></div>
+                            </div>
+                            <input type="file" id="prodInStudio" class="hidden" accept="image/*">
+                            <textarea id="prodDescStudio" rows="3" placeholder="Vision Agent akan mengekstrak detail otomatis..." class="resize-none text-xs bg-gray-50 border-transparent shadow-none"></textarea>
+                        </div>
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2"><label class="label-title">Format Iklan</label><select id="prodPitch" class="populate-select" data-type="pitch"></select></div>
+                                <div class="col-span-2"><label class="label-title">Kategori Produk</label><select id="prodCat" class="populate-select" data-type="category"></select></div>
+                                <div class="col-span-2"><label class="label-title">Gaya Visual</label><select id="prodArt" class="populate-select" data-type="style"></select></div>
+                                <div class="col-span-2"><label class="label-title">Lingkungan Set (Vibe)</label><select id="prodEnv" class="populate-select" data-type="env_prod"></select></div>
+                                <div class="col-span-2"><label class="label-title">Cahaya & Efek</label><select id="prodLight" class="mb-2 populate-select" data-type="light_prod"></select><select id="prodFX" class="populate-select" data-type="fx"></select></div>
+                                <div class="col-span-2"><label class="label-title">Suara Voice Over</label><select id="prodLang" class="mb-2 populate-select" data-type="language"></select><select id="prodVoice" class="populate-select" data-type="voice"></select></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50">
+                                <div><label class="label-title">Scene</label><input type="number" id="prodCount" value="1" class="text-center"></div>
+                                <div><label class="label-title">Rasio</label><select id="prodRatio" class="text-center populate-select" data-type="ratio"></select></div>
+                            </div>
+                        </div>
+                        <button id="btnGenProd" onclick="window.generateContent('product')" class="btn-action btn-solid py-3 text-xs mt-2"><span id="txtGenProd">Jalankan Multi-Agent</span></button>
+                    </div>
+                </div>
+                <div class="panel-right flex items-center justify-center opacity-30 pointer-events-none"><div class="text-center"><div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 shadow-sm"><i class="fa-solid fa-satellite-dish text-2xl text-gray-300"></i></div><h3 class="text-lg font-bold font-mono tracking-widest uppercase text-gray-800">System Linked</h3><p class="text-xs text-gray-500 mt-2 font-medium">Output renders exclusively in Monitor Hub.</p></div></div>
+            </div>
+
+            <!-- LAYER 4: CONTENT PRODUCT (UGC) -->
+            <div id="viewContentProduct" class="view-layer">
+                <div class="panel-left scrollbar-custom">
+                    <div><h2 class="text-lg font-extrabold text-gray-900 tracking-wide font-outfit">Content Product</h2><p class="text-[10px] text-gray-500 font-mono uppercase mt-1">Creator DNA Synthesis</p></div>
+                    <div class="space-y-4 mt-2 flex-1">
+                        
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                            <label class="label-title mb-2">DNA Inject (Wajib)</label>
+                            <div class="grid grid-cols-2 gap-3 mb-3">
+                                <div id="boxUgcProd" class="upload-zone-clean h-24 bg-gray-50 border border-gray-100" onclick="document.getElementById('ugcInProd').click()">
+                                    <div id="prompt-ugcInProd" class="flex flex-col items-center z-10"><i class="fa-solid fa-box-open text-xl mb-1 text-gray-400"></i><span class="text-[8px] text-gray-500 font-bold tracking-widest uppercase">PRODUK</span></div>
+                                    <img id="prev-ugcInProd" class="preview-img hidden rounded-xl" style="object-fit: contain;">
+                                    <div id="load-ugcInProd" class="hidden absolute inset-0 bg-white/90 flex-col items-center justify-center z-20"><div class="spinner text-gray-900"></div></div>
+                                </div><input type="file" id="ugcInProd" class="hidden" accept="image/*">
+                                
+                                <div id="boxUgcModel" class="upload-zone-clean h-24 bg-gray-50 border border-gray-100" onclick="document.getElementById('ugcInModel').click()">
+                                    <div id="prompt-ugcInModel" class="flex flex-col items-center z-10"><i class="fa-solid fa-user text-xl mb-1 text-gray-400"></i><span class="text-[8px] text-gray-500 font-bold tracking-widest uppercase">MODEL</span></div>
+                                    <img id="prev-ugcInModel" class="preview-img hidden rounded-xl" style="object-fit: contain;">
+                                </div><input type="file" id="ugcInModel" class="hidden" accept="image/*">
+                            </div>
+                            <div class="space-y-2">
+                                <div><label class="label-title">Brand Name (Auto-Fill)</label><input type="text" id="ugcBrand" placeholder="Menunggu foto produk..." class="disabled:opacity-50" disabled></div>
+                                <div><label class="label-title">Product USP (Auto-Fill)</label><textarea id="ugcUsp" rows="2" placeholder="Ekstraksi data..." class="resize-none disabled:opacity-50" disabled></textarea></div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="col-span-2"><label class="label-title">Format / Hook</label><select id="ugcPitch" class="populate-select" data-type="pitch"></select></div>
+                                <div class="col-span-2"><label class="label-title">Tone & Style Video</label><select id="ugcTone" class="populate-select" data-type="ugc_tone"></select></div>
+                                <div class="col-span-2"><label class="label-title">Target Audiens</label><select id="ugcAudience" class="populate-select" data-type="audience"></select></div>
+                                <div class="col-span-2"><label class="label-title">Gaya Visual</label><select id="ugcStyle" class="populate-select" data-type="style"></select></div>
+                                <div class="col-span-2"><label class="label-title">Studio & Lighting</label><div class="grid grid-cols-2 gap-2"><select id="ugcEnv" class="populate-select" data-type="env_prod"></select><select id="ugcLight" class="populate-select" data-type="light_prod"></select></div></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 pt-2 border-t border-gray-50">
+                                <div><label class="label-title">Scene</label><input type="number" id="ugcCount" value="6" class="text-center"></div>
+                                <div><label class="label-title">Rasio</label><select id="ugcRatio" class="text-center populate-select" data-type="ratio"></select></div>
+                            </div>
+                        </div>
+                        <button id="ugc_btnGen" onclick="window.generateContent('contentProduct')" class="btn-action btn-solid py-3 text-xs mt-2"><span>SINTESIS STORYBOARD</span></button>
+                    </div>
+                </div>
+                <div class="panel-right flex flex-col bg-[#fafafa] p-0">
+                    <header class="flex justify-between items-center px-6 py-4 border-b border-gray-100 shrink-0 bg-white">
+                        <div id="ugc_statInfo" class="text-[10px] font-bold text-gray-500 tracking-widest uppercase">
+                            <i class="fa-solid fa-circle-dot animate-pulse mr-2 text-emerald-500"></i> UGC TERMINAL READY
+                        </div>
+                        <div id="ugc_batchArea" style="display:none">
+                            <button class="bg-gray-900 text-white px-5 py-2.5 rounded-full text-[9px] font-bold transition-all shadow-md hover:bg-gray-800" id="ugc_btnBatchAll" onclick="window.ugcRenderBatch()"><i class="fa-solid fa-rocket mr-1"></i> RENDER SEMUA BATCH</button>
+                        </div>
+                    </header>
+                    <div class="flex-1 overflow-x-auto overflow-y-hidden flex items-start gap-4 p-6 scrollbar-custom bg-[#fafafa]" id="ugc_viewport">
+                        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0.3; height: 100%; width:100%;">
+                            <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 shadow-sm"><i class="fa-solid fa-mobile-screen text-2xl text-gray-300"></i></div>
+                            <h2 class="font-grotesk font-extrabold text-2xl text-gray-800 tracking-widest uppercase">DNA SYSTEM</h2>
+                            <p class="text-[10px] text-gray-500 mt-2 font-medium">UNGGAH ASET UNTUK MEMULAI</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LAYER 5: MONITOR (CENTRAL HUB) -->
+            <div id="viewProduction" class="view-layer flex-col overflow-y-auto scrollbar-custom p-6 md:p-10 relative">
+                
+                <div id="emptyMonitor" class="absolute inset-0 flex flex-col items-center justify-center opacity-30">
+                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100"><i class="fa-solid fa-server text-3xl text-gray-300"></i></div>
+                    <h3 class="text-lg font-extrabold font-outfit tracking-widest uppercase text-gray-900">Monitor Panel</h3>
+                    <p class="text-[11px] text-gray-500 mt-1 font-medium">Production queue is empty. Start a generation.</p>
+                </div>
+                
+                <div id="outputMonitor" class="hidden flex-col w-full max-w-[1000px] mx-auto z-20 pb-12">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-5 pb-3 border-b border-gray-100">
+                        <div>
+                            <div class="inline-flex items-center px-2 py-1 rounded-full bg-white border border-gray-100 shadow-sm mb-2">
+                                <div class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></div>
+                                <span class="text-[8px] font-bold text-gray-600 uppercase tracking-widest">Active Session</span>
+                            </div>
+                            <h2 id="monitorTitle" class="text-xl md:text-2xl font-extrabold text-gray-900 font-outfit mb-0.5 tracking-tight">Project Title</h2>
+                            <p id="monitorHook" class="text-gray-500 text-[11px] font-mono italic">"Project Hook"</p>
+                        </div>
+                        <div class="flex flex-col gap-2 mt-3 md:mt-0">
+                            <button onclick="window.memoryAgentExport()" class="px-4 py-2 bg-white text-gray-800 border border-gray-100 rounded-full text-[9px] font-bold uppercase tracking-widest hover:bg-gray-50 transition-all shadow-sm flex items-center gap-1.5 justify-center w-full md:w-auto"><i class="fa-solid fa-box-archive mr-2"></i> Export ZIP</button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2.5 mb-5">
+                        <div class="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm"><h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest">Target Audience</h4><p id="monitorTarget" class="text-[11px] text-gray-800 font-bold leading-relaxed"></p></div>
+                        <div class="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm"><h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest">DNA Extracted</h4><p id="monitorDna" class="text-[9px] text-gray-600 font-medium line-clamp-3 leading-relaxed"></p></div>
+                        <div class="bg-white p-3.5 rounded-2xl border border-gray-100 shadow-sm"><h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest">Audio Syntax</h4><p id="monitorVoice" class="text-[11px] text-gray-800 font-bold leading-relaxed"></p></div>
+                        <div class="bg-gray-900 p-3.5 rounded-2xl border border-gray-800 relative overflow-hidden">
+                            <div class="absolute -right-2 -bottom-2 opacity-10"><i class="fa-solid fa-lightbulb text-4xl text-white"></i></div>
+                            <h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest relative z-10">Strategy</h4>
+                            <p id="monitorStrategy" class="text-[11px] text-white font-bold relative z-10 leading-relaxed"></p>
+                        </div>
+                    </div>
+                    
+                    <div id="monitorBreakdown" class="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hidden mb-5">
+                        <div class="flex items-center space-x-2.5 mb-3"><div class="w-6 h-6 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100"><i class="fa-solid fa-microscope text-gray-900 text-xs"></i></div><h3 class="text-xs font-extrabold text-gray-900 tracking-wide font-outfit">Analysis Breakdown</h3></div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div><h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest flex items-center"><i class="fa-solid fa-eye mr-1.5 text-gray-400"></i> Visual Framing</h4><p id="breakdownVisual" class="text-[10px] text-gray-600 leading-relaxed font-mono"></p></div>
+                            <div><h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest flex items-center"><i class="fa-solid fa-volume-high mr-1.5 text-gray-400"></i> Audio Pacing</h4><p id="breakdownAudio" class="text-[10px] text-gray-600 leading-relaxed font-mono"></p></div>
+                            <div><h4 class="text-[8px] text-gray-400 uppercase font-bold mb-1.5 tracking-widest flex items-center"><i class="fa-solid fa-fire mr-1.5 text-gray-400"></i> Viral Impact</h4><p id="breakdownViral" class="text-[10px] text-gray-600 leading-relaxed font-mono"></p></div>
+                        </div>
+                    </div>
+
+                    <div id="gridMonitor" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 items-start"></div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-5 py-3 rounded-full shadow-xl translate-y-32 transition-transform duration-500 flex items-center gap-2.5 z-[99999]">
+        <i id="toastIcon" class="fa-solid fa-circle-info text-white text-xs"></i><span id="toastMsg" class="font-bold text-xs font-outfit tracking-wide"></span>
+    </div>
+
+    <script>
+        // State
+        const apiKey = "";
+        window.apiKey = apiKey;
+        window.dnaMode = 'auto'; window.productionJSON = []; window.isLoggedIn = false; window.isProcessing = false;
+        
+        window.base64CharacterImage = null; 
+        window.base64PodcastHost = null; window.base64PodcastGuest = null; window.base64PodcastProduct = null; window.podcastMasterStudioBase64 = null; 
+        window.base64ProductStudio = null; 
+        window.ugcProductBase64 = null; 
+        window.ugcModelBase64 = null; 
+        
+        window.scenePrompts = {};
+        window.ugcRenderedImages = {};
+
+        // Configuration Arrays
+        const OPTS = {
+            pitch: ["Storytelling Murni (Fokus Cerita)","Soft Selling (Edukasi & Solusi)","Hard Selling (Promo & Urgensi)","Edukasi Objektif (Fakta & Analisis)","Review Jujur / Testimonial","Tutorial / Step-by-Step","Behind the Scenes (BTS)","Pain-Agitate-Solve (Metode PAS)","Fear Of Missing Out (Strategi FOMO)","Comparison / Versus (Kompetitor)","Problem-Solution (Direct)","Trend Jacking (Viral Style)","Aesthetic / ASMR Focus","Storytelling Inspiratif","Unboxing Experience","Myth Busting (Membongkar Mitos)","Empathy Marketing","Social Proof Validation","User Testimonial Montage"],
+            audience: ["Dewasa / Thriller Seekers","Remaja / Dewasa Muda","Anak-anak / Keluarga","Penggemar Sejarah / Mitologi","Pecinta Otomotif / Mekanik","Pecinta Alam & Survival","Luxury / High-End Collectors","Umum / Segala Umur","Gen Z / Digital Natives","Professional Millenials","Parents / Families","Budget-Conscious Shoppers","Eco-Conscious / Sustainable","Fitness & Wellness Seekers","Solo Travelers / Nomads","Tech-Savvy Early Adopters","Pet Owners / Animal Lovers","Couples / Honeymooners","Entrepreneur & Business","Gamers & E-Sports","Beauty Enthusiasts"],
+            tone: ["Restorasi Ajaib","Investigasi & Dokumenter","Slice of Life (Natural)","Misteri & Tegang","Sci-Fi & Cyberpunk","Epik & Heroik","Horor Psikologis","Petualangan Fantasi","Mengharukan / Emosional","Komedi Satir / Lucu","Edukasi & Sejarah","High-Paced / Energetic","Calm & Meditative"],
+            env: ["Auto (Sesuaikan dengan Judul & Cerita)","Hangar / Bengkel Tua","Kota Cyberpunk Malam Hari","Hutan Gelap Berkabut","Pedesaan Tradisional Asri","Gurun Pasir Post-Apocalyptic","Interior Kapal Luar Angkasa","Reruntuhan Bersejarah","Rumah Tua Victoria","Laboratorium Rahasia","Pegunungan Ekstrem","Castel Kuno","Jalanan Neon Tokyo","Underwater Base","Sky Floating Island"],
+            env_prod: ["High-End Minimalist Studio","Rustic Artisan Kitchen Setup","Luxury Marble & Gold Accents","Nature-Inspired Water & Stone Setup","Cinematic Dark Mood Room","Podium Minimalis","Lifestyle Cafe (Hangat)","Cyberpunk Neon (Futuristik)","Anti-Gravity (Melayang)","Zen Garden Setup","Industrial Concrete Backdrop","Clean Laboratory Desk","Neon Glowing Pedestal","Classic Wooden Shelf"],
+            lighting: ["Time Lapse (Siang-Malam)","Cinematic High Contrast","God Rays (Cahaya Ilahi)","Bioluminescent Glow","Moonlight Pucat","Golden Hour Sunlight","Harsh Workshop Light","Thick Fog / Kabut Tebal","Firelight (Api Unggun)","Natural Overcast (Mendung)","Volumetric Fog Lighting","Underwater Caustic Lighting","Neon Silhouette","Sunset Rim Light","Cinematic Top-Down"],
+            light_prod: ["Profoto Studio Strobes","Natural Window Light","Cinematic Rim Lighting (Neon)","Time Lapse (Shadow Moving)","Soft Studio Softbox","Dramatic High Contrast","Golden Hour Sunlight","Moody Cyberpunk Neon","Harsh Direct Sunlight","Bioluminescent Glow","Underwater Caustic Lighting","God Rays (Cahaya Ilahi)","Ethereal Moonlight","Sleek Commercial Ring Light","Volumetric Fog Lighting","Top-Down Flat Light","Volumetric Colored Lasers"],
+            style: ["Photo Realism","Extremely Realistic","Raw iPhone 15 Pro Max","Cinematic Vintage Film 35mm","Lofi Disposable Camera","CCTV / Dashcam Aesthetic","Cinematic Noir (Gelap)","3D Pixar & Disney","Anime & Manga","3D Unreal Engine","Polaroid Vintage","Digital Illustration","Hyper-Surrealism","Claymation","Origami Stop Motion","Vector Art"],
+            category: ["Skincare & Kosmetik","Makanan & Minuman (F&B)","Elektronik & Gadget","Fashion & Pakaian Trendi","Sepatu & Sneakers","Tas, Koper & Travel Gear","Perhiasan & Jam Tangan","Parfum & Wewangian","Otomotif (Kendaraan)","Suplemen & Wellness","Olahraga & Outdoor","Peralatan Rumah Tangga","Furniture & Dekorasi","Mainan & Hobi Koleksi","Buku & Alat Tulis","Pakaian Bayi & Anak","Real Estate & Properti","Digital Course / Software"],
+            language: ["Bahasa Indonesia","English (US)","English (UK)","Japanese (Bahasa Jepang)","Korean (Bahasa Korea)","Arabic (Bahasa Arab)","Spanish (Espanol)","French (Français)"],
+            accent: ["Netral","Makassar","Sunda","Jawa","Betawi","Palembang","Medan","Balinese","Minang","Bugis","Batak","Papuan"],
+            voice: ["Auto (Analisa Karakter DNA)","Pria - Narator Dokumenter","Pria - Ahli Restorasi","Wanita - Kasual (Natural)","Pria - Kakek Bijak","Pria - Detektif / Misteri","Pria - Lelah","Wanita - AI Masa Depan","Wanita - Saksi Mata (Panik)","Wanita - ASMR Whisper","Pria - Voice Over TV","Wanita - Beauty Vlogger","Pria - Reviewer Gadget","Wanita - Lembut (Spa)","Pria - Berat & Karismatik","Wanita - Elegan (Parfum)","Pria - Ceria & Energetik","Wanita - Storyteller Naratif","Pria - Pakar Edukasi","Wanita - Gen Z TikToker","Pria - Gen Z Streamer","Pria - Motivator Menggebu","Wanita - News Anchor (Formal)"],
+            pod_style: ["Komedi & Tongkrongan","Deep Talk & Inspiratif","Misteri & Horor","Interview Formal","Gosip & Infotainment","Konspirasi & Teori Gila","Debat Panas & Opini Keras","Edutainment & Sains Populer","Motivasi Bisnis","Roasting & Sarkasme","Spiritual & Religi","Gaming & Pop Culture","Interactive Q&A"],
+            pod_studio: ["High-End Minimalist (Acoustic Panels)","Ultra-Dark Lounge","Clinical Void","Dark Room Neon","Neon Living Room","Japanese Otaku Room","Executive Lounge","Tech Startup Office","Industrial Concrete","Cozy Indie Room","Modern Corporate","Underground Raw Brick Wall","Cyberpunk Podcast Deck","Retro 80s Radio Station","Outdoor Nature Deck","Bright Scandinavian Room"],
+            ratio: ["1:1","9:16","16:9","4:5","1.91:1"],
+            fx: ["Clean (Tanpa Efek)","Dynamic fresh water splashes","Mysterious dry ice fog","Beautiful flying floral petals","Slow-motion levitating ingredients","Dust particles in light rays","Smoldering embers and smoke","Holographic digital data","Sparkling glitter and gold dust","Frost and condensation","Liquid ripples radiating","Cinematic lens flares","Wind blowing fabrics/leaves","Glitch & Chromatic Aberration","Slow Motion Shatter"]
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.populate-select').forEach(sel => {
+                try {
+                    const type = sel.getAttribute('data-type');
+                    if (OPTS[type]) { sel.innerHTML = OPTS[type].map(v => `<option value="${v}">${v}</option>`).join(''); }
+                } catch(e) {}
+            });
+            window.switchTab('login'); 
+            
+            const bindUpload = (inputId, prevId, varName, promptId, isVision, cb) => {
+                const inputEl = document.getElementById(inputId); 
+                if(!inputEl) return;
+                inputEl.addEventListener('change', (e) => {
+                    if(!e.target.files || !e.target.files[0]) return;
+                    const loadEl = document.getElementById(`load-${inputId}`);
+                    if (isVision && loadEl) { loadEl.classList.remove('hidden'); loadEl.classList.add('flex'); }
+                    
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        const img = new Image();
+                        img.onload = async () => {
+                            const c = document.createElement('canvas'); 
+                            let w = img.width; let h = img.height; 
+                            const MAX = 2048; 
+                            if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } } else { if (h > MAX) { w *= MAX / h; h = MAX; } } 
+                            c.width = w; c.height = h; 
+                            c.getContext('2d').drawImage(img, 0, 0, w, h); 
+                            
+                            const fullData = c.toDataURL('image/jpeg', 0.9);
+                            window[varName] = fullData.split(',')[1];
+                            
+                            const pmt = document.getElementById(promptId); if(pmt) pmt.style.display = 'none';
+                            const prv = document.getElementById(prevId); if(prv) { prv.src = fullData; prv.classList.remove('hidden'); prv.style.display = 'block'; }
+                            
+                            if (cb) await cb(window[varName]);
+                            if (isVision && loadEl) { loadEl.classList.add('hidden'); loadEl.classList.remove('flex'); }
+                        };
+                        img.src = evt.target.result;
+                    };
+                    reader.readAsDataURL(e.target.files[0]);
+                });
+            };
+
+            bindUpload('charInput', 'prev-charInput', 'base64CharacterImage', 'prompt-charInput', false, null);
+            bindUpload('podInHost', 'prev-podInHost', 'base64PodcastHost', 'prompt-podInHost', false, null);
+            bindUpload('podInGuest', 'prev-podInGuest', 'base64PodcastGuest', 'prompt-podInGuest', false, null);
+            bindUpload('podInProd', 'prev-podInProd', 'base64PodcastProduct', 'prompt-podInProd', true, async (b) => { await window.autoDescribePodcastProduct(b); });
+            bindUpload('prodInStudio', 'prev-prodInStudio', 'base64ProductStudio', 'prompt-prodInStudio', true, async (b) => { await window.autoDescribeProductFast(b); });
+            bindUpload('ugcInProd', 'prev-ugcInProd', 'ugcProductBase64', 'prompt-ugcInProd', true, async (b) => { 
+                document.getElementById('boxUgcProd')?.classList.add('border-gray-300');
+                await window.autoDescribePCDNA(b); 
+            });
+            bindUpload('ugcInModel', 'prev-ugcInModel', 'ugcModelBase64', 'prompt-ugcInModel', false, async (b) => {
+                document.getElementById('boxUgcModel')?.classList.add('border-gray-300');
+            });
+        });
+
+        // UTIL: Format Audio PCM16 to WAV (Untuk pemutaran Voice Over TTS)
+        window.pcmToWav = function(base64, sampleRate = 24000) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+            const buffer = bytes.buffer;
+
+            const wavBuffer = new ArrayBuffer(44 + buffer.byteLength);
+            const view = new DataView(wavBuffer);
+
+            const writeString = (view, offset, string) => {
+                for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+            };
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + buffer.byteLength, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, buffer.byteLength, true);
+            new Uint8Array(wavBuffer, 44).set(new Uint8Array(buffer));
+
+            return new Blob([wavBuffer], { type: 'audio/wav' });
+        };
+
+        window.showToast = function(msg, isError = false) {
+            if (isError && (msg.includes("API") || msg.includes("fetch") || msg.includes("JSON") || msg.includes("input") || msg.includes("Failed"))) return; 
+            const t = document.getElementById('toast'); const i = document.getElementById('toastIcon'); if(!t || !i) return;
+            if (isError) { t.classList.add('bg-rose-500'); t.classList.remove('bg-gray-900'); i.className = 'fa-solid fa-triangle-exclamation text-white'; } 
+            else { t.classList.remove('bg-rose-500'); t.classList.add('bg-gray-900'); i.className = 'fa-solid fa-circle-check text-white'; }
+            document.getElementById('toastMsg').textContent = msg; t.classList.remove('translate-y-32'); setTimeout(() => t.classList.add('translate-y-32'), 4000);
+        };
+        
+        window.sleep = ms => new Promise(r => setTimeout(r, ms));
+        
+        window.cleanJSON = function(str) { 
+            try { 
+                let s = str.replace(/```json/gi, '').replace(/```/g, '').trim(); 
+                let start = s.indexOf('{'); let end = s.lastIndexOf('}');
+                if(start === -1 || end === -1) throw new Error("No JSON found");
+                return s.substring(start, end + 1); 
+            } catch(e) { 
+                console.warn("JSON Clean failed, using raw string.", e);
+                return str; 
+            } 
+        };
+        
+        window.enforceAspectRatio = function(b, r) { 
+            return new Promise((res) => { 
+                const i = new Image(); 
+                i.onload = () => { 
+                    let tW=16, tH=9; if(r==='9:16'){tW=9;tH=16;} else if(r==='1:1'){tW=1;tH=1;} else if(r==='4:5'){tW=4;tH=5;} else if(r==='1.91:1'){tW=191;tH=100;} 
+                    const iR = i.width/i.height; const tR = tW/tH; 
+                    
+                    if(Math.abs(iR-tR)<0.01) return res(b); 
+                    
+                    let cW = 1024;
+                    let cH = 1024;
+                    if(tW > tH) { cW = 1024; cH = Math.round(1024 * (tH/tW)); }
+                    else { cH = 1024; cW = Math.round(1024 * (tW/tH)); }
+                    
+                    const c = document.createElement('canvas'); 
+                    c.width = cW; c.height = cH; 
+                    const ctx = c.getContext('2d');
+                    
+                    // PERBAIKAN: Logika Center-Crop (Cover) untuk mencegah gambar Gepeng
+                    let sW = i.width;
+                    let sH = i.height;
+                    let sX = 0;
+                    let sY = 0;
+
+                    if (iR > tR) {
+                        // Gambar sumber lebih lebar dari target, potong kiri-kanan
+                        sW = i.height * tR;
+                        sX = (i.width - sW) / 2;
+                    } else {
+                        // Gambar sumber lebih tinggi dari target, potong atas-bawah
+                        sH = i.width / tR;
+                        sY = (i.height - sH) / 2; 
+                    }
+                    
+                    ctx.drawImage(i, sX, sY, sW, sH, 0, 0, cW, cH);
+                    
+                    res(c.toDataURL('image/jpeg', 0.95).split(',')[1]); 
+                }; 
+                i.src=`data:image/jpeg;base64,${b}`; 
+            }); 
+        };
+        
+        window.fetchWithRetry = async function(url, options, retries = 5) {
+            if (!options.headers) options.headers = {};
+            options.headers['Content-Type'] = 'application/json';
+            
+            let lastErr; 
+            let delays = [1000, 2000, 4000, 8000, 16000];
+            const maxTries = Math.min(retries, delays.length);
+            
+            for (let i = 0; i < maxTries; i++) { 
+                try { 
+                    const r = await fetch(url, options); 
+                    if (r.ok) return await r.json(); 
+                    
+                    let errText = await r.text().catch(()=>"");
+                    throw new Error(`HTTP ${r.status}: ${errText}`);
+                } catch (e) { 
+                    lastErr = e; 
+                    if (e.message.includes('HTTP 400') || e.message.includes('HTTP 401') || e.message.includes('HTTP 403') || e.message.includes('HTTP 404')) {
+                        throw e; // Fail fast for authorization/bad request errors
+                    }
+                    await window.sleep(delays[i]); 
+                } 
+            } 
+            throw lastErr;
+        };
+
+        window.callGeminiJSON = async function(prompt, imageObjects = [], useGoogle = false) {
+            for(let i=1; i<=3; i++) {
+                try {
+                    let parts = [{ text: prompt }]; 
+                    imageObjects.forEach(img => { if(img) parts.push({ inlineData: { mimeType: 'image/jpeg', data: img } }); });
+                    const p = { contents: [{ role: "user", parts: parts }], generationConfig: { responseMimeType: "application/json" } }; 
+                    if(useGoogle) p.tools = [{ "google_search": {} }];
+                    
+                    const res = await window.fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(p) 
+                    }, 3);
+                    if (!res.candidates || !res.candidates[0].content) throw new Error("Empty AI Response");
+                    return JSON.parse(window.cleanJSON(res.candidates[0].content.parts[0].text));
+                } catch(e) { if(i===3) throw e; await window.sleep(2000); }
+            }
+        };
+
+        window.openImageReview = function(sceneId) {
+            let b64 = null;
+            if(window.scenePrompts[sceneId] && window.scenePrompts[sceneId].finalImage) {
+                b64 = window.scenePrompts[sceneId].finalImage;
+            } else if (window.ugcRenderedImages && window.ugcRenderedImages[sceneId]) {
+                b64 = window.ugcRenderedImages[sceneId];
+            }
+            if(!b64) return window.showToast("Gambar sedang diproses...", true);
+            
+            const modal = document.getElementById('imageReviewModal');
+            document.getElementById('reviewImageSrc').src = `data:image/jpeg;base64,${b64}`;
+            
+            document.getElementById('reviewDownloadBtn').onclick = function() {
+                window.zhrDownloadImage(sceneId);
+            };
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => { modal.classList.remove('opacity-0'); modal.classList.add('opacity-100'); }, 10);
+        };
+
+        window.closeImageReview = function() {
+            const modal = document.getElementById('imageReviewModal');
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0');
+            setTimeout(() => { modal.classList.add('hidden'); }, 300);
+        };
+
+        window.switchTab = function(tab) {
+            if (!window.isLoggedIn && tab !== 'login') return window.showToast("Akses Ditolak. Silakan login.", true);
+            ['viewDashboard','viewPodcast','viewProduct','viewContentProduct','viewProduction','viewLogin'].forEach(id => {
+                const el = document.getElementById(id); if(el) { el.classList.remove('active'); }
+            });
+            document.querySelectorAll('.nav-tab').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll(`.nav-tab[data-tab="${tab}"]`).forEach(btn => btn.classList.add('active'));
+            const tv = document.getElementById(`view${tab.charAt(0).toUpperCase() + tab.slice(1)}`); 
+            if(tv) { tv.classList.add('active'); }
+        };
+
+        window.checkLogin = function() { 
+            const p = document.getElementById('loginPassword'); 
+            if (p?.value === 'q123') { window.isLoggedIn = true; window.showToast("Workspace Unlocked!"); window.switchTab('dashboard'); } 
+            else { window.showToast("Password Salah.", true); if(p) p.value = ''; } 
+        };
+
+        window.setAgentPopup = function(state) {
+            const popup = document.getElementById('agentPopup');
+            if(!popup) return;
+            if(state) {
+                popup.classList.add('active');
+                ['nodeAnalyst','nodePlanner','nodeCreative','nodeDev','nodeExec'].forEach(id => {
+                    const el = document.getElementById(id); if(el) { el.classList.remove('active-node', 'done-node'); }
+                });
+            } else { popup.classList.remove('active'); }
+        }
+
+        window.showAgentProgressPopup = async function(nodeId) {
+            const el = document.getElementById(nodeId);
+            if(el) { el.classList.add('active-node'); await window.sleep(800); el.classList.remove('active-node'); el.classList.add('done-node'); }
+        };
+
+        window.autoSuggestDashTitle = async function() {
+            const dArea = document.getElementById('dashTitle'); 
+            const suggArea = document.getElementById('dashTitleSuggestions');
+            if(dArea) dArea.value = "Menganalisa DNA & meracik hook..."; 
+            if(suggArea) { suggArea.innerHTML = ''; suggArea.classList.add('hidden'); suggArea.classList.remove('flex'); }
+
+            try {
+                const prompt = `CRITICAL SAFETY RULE: Do not generate any NSFW, explicit, violent, gory, or sensitive content. All scenes must be strictly family-friendly, professional, and commercially safe for all ages.
+                You are an expert creative director. Create 3 HIGHLY ENGAGING, unique, and viral story titles/hooks in Indonesian. If an image is provided, base the themes, tone, and genre heavily on the character's visual vibe (age, style, setting). OUTPUT JSON ONLY: { "topics": ["Title 1", "Title 2", "Title 3"] }`;
+                let images = [];
+                if (window.base64CharacterImage) images.push(window.base64CharacterImage);
+                const res = await window.callGeminiJSON(prompt, images, false);
+                if(dArea) dArea.value = ""; 
+                if(res.topics && res.topics.length > 0) {
+                    if(suggArea) {
+                        suggArea.classList.remove('hidden'); suggArea.classList.add('flex');
+                        suggArea.innerHTML = res.topics.map(t => 
+                            `<button type="button" onclick="document.getElementById('dashTitle').value = '${t.replace(/'/g, "\\'")}'" class="text-left text-[10px] bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors text-gray-800 font-mono shadow-sm">💡 ${t}</button>`
+                        ).join('');
+                    }
+                }
+                window.showToast("Ide Hook Cerita Berhasil Dibuat!");
+            } catch (e) { 
+                if(dArea) dArea.value = ""; window.showToast("Gagal mendapat suggest", true);
+            }
+        };
+
+        window.autoDescribePodcastProduct = async function(base64Image) {
+            const dArea = document.getElementById('podDesc'); const tArea = document.getElementById('podTopic'); const suggArea = document.getElementById('podTopicSuggestions');
+            const isAuto = document.getElementById('podAutoTop')?.checked;
+            if(dArea) dArea.value = "Scanning via Neural Vision..."; 
+            if(tArea && isAuto) tArea.value = "Menganalisa tren dan meracik hook viral...";
+            if(suggArea) { suggArea.innerHTML = ''; suggArea.classList.add('hidden'); suggArea.classList.remove('flex'); }
+            try {
+                const prompt = `CRITICAL SAFETY RULE: Do not generate any NSFW, explicit, violent, gory, or sensitive content. All content must be strictly family-friendly, professional, and commercially safe for all ages.
+                You are a viral social media strategist. USE GOOGLE SEARCH to identify product and current trends. 1. Identify product. 2. Create 3 HIGHLY ENGAGING, clickbaity podcast topics/hooks in Indonesian. OUTPUT JSON ONLY: { "desc": "2 sentences desc", "topics": ["Title 1", "Title 2", "Title 3"] }`;
+                const res = await window.callGeminiJSON(prompt, [base64Image], true);
+                if(dArea) dArea.value = res.desc || ""; 
+                if(isAuto && res.topics && res.topics.length > 0) {
+                    tArea.value = res.topics[0]; tArea.disabled = false;
+                    if(suggArea) {
+                        suggArea.classList.remove('hidden'); suggArea.classList.add('flex');
+                        suggArea.innerHTML = res.topics.map(t => `<button type="button" onclick="document.getElementById('podTopic').value = '${t.replace(/'/g, "\\'")}'" class="text-left text-[10px] bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors text-gray-800 font-mono shadow-sm">🔥 ${t}</button>`).join('');
+                    }
+                }
+                window.showToast("Product DNA & Hooks Locked!");
+            } catch (e) { if(dArea) dArea.value = "Vision bypass engaged."; if(tArea && isAuto) { tArea.value = ""; tArea.disabled = false; } }
+        };
+
+        window.autoDescribePCDNA = async function(base64Image) {
+            const br = document.getElementById('ugcBrand'); const ds = document.getElementById('ugcUsp'); 
+            if(br) br.value = "Scanning..."; if(ds) ds.value = "Extracting DNA..."; 
+            try {
+                const res = await window.callGeminiJSON(`CRITICAL SAFETY RULE: Do not generate any NSFW, explicit, violent, gory, or sensitive content. All content must be strictly family-friendly, professional, and commercially safe for all ages.
+                Product researcher. Analyze image and USE GOOGLE SEARCH to identify exact brand, model, official materials, key selling points. OUTPUT JSON ONLY: { "brand": "Brand Name", "usp": "Detailed material and USP" }`, [base64Image], true);
+                if(br) br.value = res.brand || ""; if(ds) ds.value = res.usp || ""; window.showToast("DNA Fetched!");
+            } catch (e) { if(br) br.value = "Bypass"; if(ds) ds.value = "Isi manual"; } 
+        };
+
+        window.autoDescribeProductFast = async function(base64Image) {
+            const d = document.getElementById('prodDescStudio'); 
+            if(d) d.value = "Neural Vision Scanning..."; 
+            try {
+                const res = await window.callGeminiJSON(`CRITICAL SAFETY RULE: Do not generate any NSFW, explicit, violent, gory, or sensitive content. All content must be strictly family-friendly, professional, and commercially safe for all ages.
+                Identifikasi produk instan. Sebutkan jenis, warna, bahan, teks merek. 2 kalimat padat. NO web search. OUTPUT JSON ONLY: { "desc": "string" }`, [base64Image], false);
+                if (res) { if(d) d.value = res.desc || ""; window.showToast("Vision Scan Complete!"); } else { throw new Error("No data"); }
+            } catch (e) { if(d) d.value = "Vision Error."; } 
+        };
+
+        window.generateAudio = async function(sceneId) {
+            const p = window.scenePrompts[sceneId];
+            if (!p || !p.textToSpeak) return window.showToast("Tidak ada dialog/narasi untuk diucapkan", true);
+            
+            const btn = document.getElementById(`btn-audio-${sceneId}`);
+            const container = document.getElementById(`audio-container-${sceneId}`);
+            const audioEl = document.getElementById(`audio-${sceneId}`);
+            
+            if (btn) btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Merender Suara...`;
+            
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: p.textToSpeak }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+                
+                const res = await window.fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${window.apiKey}`, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }, 3);
+                
+                const pcmBase64 = res.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                if (!pcmBase64) throw new Error("Gagal menerima data suara dari server.");
+                
+                const blob = window.pcmToWav(pcmBase64, 24000);
+                const url = URL.createObjectURL(blob);
+                
+                audioEl.src = url;
+                container.classList.remove('hidden');
+                if (btn) btn.style.display = 'none'; 
+                
+                window.showToast("Voice Over Berhasil Dirender!");
+            } catch (e) {
+                window.showToast("Error Audio: " + e.message, true);
+                if (btn) btn.innerHTML = `<i class="fa-solid fa-microphone mr-1"></i> Generate Voice`;
+            }
+        };
+
+        window.getStylePrompt = function(scene, env, light, style) {
+            let base = ""; let st = (style || "").toLowerCase();
+            const ultraRealismTags = "Shot on Hasselblad H6D-100c, 85mm f/1.2 lens, hyper-realistic, photorealistic, 8k resolution, raw unedited photography, natural textures, stunning commercial studio lighting, award-winning cinematography, ultra-detailed. NEGATIVE: CGI, 3D render, plastic, illustration, cartoon, low resolution, blurry.";
+            if (st.includes("photo realism") || st.includes("extremely") || st.includes("raw iphone")) base = ultraRealismTags;
+            else if (st.includes("pixar") || st.includes("disney")) base = `High-end 3D animation render, modern Pixar style. 3D characters, soft bouncy lighting.`;
+            else if (st.includes("anime") || st.includes("manga")) base = `High quality Japanese Anime style. Hand-drawn cel-shaded animation.`;
+            else if (st.includes("unreal") || st.includes("3d")) base = `Epic Unreal Engine 5 render, AAA video game graphics, ray tracing.`;
+            else if (st.includes("vintage")) base = `Vintage 35mm film photography, cinematic lighting, heavy film grain.`;
+            else if (scene && scene.toLowerCase && scene.toLowerCase().includes("cctv")) base = `CCTV security camera footage aesthetic.`;
+            else base = `High quality illustration.`;
+
+            return `MAIN ACTION: ${scene}. ENVIRONMENT: ${env}. LIGHTING: ${light}. STYLE: ${base}`;
+        };
+
+        window.generateDeveloperPayloads = function(s, env, light, style, ratio, voiceProfile) {
+            let base = ""; let st = (style || "").toLowerCase();
+            const ultraRealismTags = "Shot on Hasselblad H6D-100c, 85mm f/1.2 lens, hyper-realistic, photorealistic, 8k resolution, raw unedited photography, natural textures, stunning commercial studio lighting, award-winning cinematography, ultra-detailed. NEGATIVE: CGI, 3D render, plastic, illustration, cartoon, low resolution, blurry.";
+            if (st.includes("photo realism") || st.includes("extremely") || st.includes("raw iphone")) base = ultraRealismTags;
+            else if (st.includes("pixar") || st.includes("disney")) base = `High-end 3D animation render, modern Pixar style. 3D characters, soft bouncy lighting.`;
+            else if (st.includes("anime") || st.includes("manga")) base = `High quality Japanese Anime style. Hand-drawn cel-shaded animation.`;
+            else if (st.includes("unreal") || st.includes("3d")) base = `Epic Unreal Engine 5 render, AAA video game graphics, ray tracing.`;
+            else if (st.includes("vintage")) base = `Vintage 35mm film photography, cinematic lighting, heavy film grain.`;
+            else if (s.visual && s.visual.toLowerCase().includes("cctv")) base = `CCTV security camera footage aesthetic.`;
+            else base = `High quality illustration.`;
+
+            const masterVisual = `MAIN SUBJECT & ACTION: ${s.visual_prompt || s.visual}. ENVIRONMENT: ${env}. LIGHTING: ${light}. CINEMATOGRAPHY & STYLE: ${base} NO TEXT.`;
+            let combinedAudio = "";
+            if (s.narration) combinedAudio += s.narration + " ";
+            if (s.dialogue) combinedAudio += s.dialogue;
+            else if (s.dialog) combinedAudio += s.dialogue;
+            combinedAudio = combinedAudio.trim();
+
+            const realisticMotion = `Maintain strict facial consistency. Subtle cinematic fluid movement, gentle natural micro-expressions, authentic eye contact. No robotic stiffness or aggressive motion. Precise lip-sync speaking the exact phrase: "${combinedAudio}". ${s.action_and_expression}`;
+            const voiceStr = voiceProfile ? voiceProfile : "organic human voice, highly natural intonation, conversational Indonesian";
+
+            return {
+                labs_google_flow: { platform: "labs.google/flow", prompt: `${masterVisual} Motion: ${realisticMotion}`, spoken_text: combinedAudio, camera_motion: s.camera_motion, aspect_ratio: ratio },
+                opal_google: { platform: "opal.google", image_to_video: { adherence: "strict", motion: realisticMotion, art_style: style }, audio_generation: { text: combinedAudio, characteristics: voiceStr } },
+                grok_ai: { platform: "grok_ai_video", physics_engine: "realistic", prompt: `${masterVisual}. Action: ${realisticMotion}. Spoken text: "${combinedAudio}"` }
+            };
+        };
+
+        window.renderCardHTML = function(scene, index, pData, type) {
+            const sId = `scene-${index}`; 
+            const rClass = pData.ratio === '16:9' ? 'aspect-16-9' : (pData.ratio === '1:1' ? 'aspect-1-1' : (pData.ratio === '4:5' ? 'aspect-4-5' : 'aspect-9-16'));
+            const jLabs = JSON.stringify(pData.devPayloads.labs_google_flow, null, 2).replace(/"/g, '&quot;');
+            const jOpal = JSON.stringify(pData.devPayloads.opal_google, null, 2).replace(/"/g, '&quot;');
+            const jGrok = JSON.stringify(pData.devPayloads.grok_ai, null, 2).replace(/"/g, '&quot;');
+            
+            let badges = `<div class="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest uppercase flex items-center shadow-sm">
+                <i class="fa-solid fa-camera mr-1.5"></i> ${scene.shot_type || scene.focal_character || 'CLOSE UP'}
+            </div>`;
+            
+            const el = document.createElement('div'); 
+            el.className = `scene-card w-full shrink-0 bg-white border border-gray-100 shadow-sm`;
+            
+            let combinedAudio = `${scene.narration || ""} ${scene.dialogue || scene.dialog || ""}`.trim();
+            pData.textToSpeak = combinedAudio; 
+
+            el.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-gray-900 font-extrabold text-[15px] tracking-[0.2em] font-mono uppercase">SCENE_${String(index).padStart(2, '0')}</h3>
+                    ${badges}
+                </div>
+                <div class="w-full rounded-[1rem] overflow-hidden bg-gray-50 relative border border-gray-100 mb-4 ${rClass}" id="img-${sId}">
+                    <div class="shimmer absolute inset-0 w-full h-full"></div>
+                    <div class="flex items-center justify-center absolute inset-0 z-10"><div class="spinner text-gray-900"></div></div>
+                </div>
+                <div class="flex flex-col flex-1">
+                    <p class="text-gray-800 text-[11px] leading-relaxed font-bold mb-4">${scene.visual || scene.visual_prompt}</p>
+                    ${(scene.dialogue || scene.dialog || scene.narration) ? `
+                    <div class="bg-gray-50 p-4 rounded-[1rem] border border-gray-100 flex items-start gap-3 mt-auto">
+                        <i class="fa-solid fa-microphone text-gray-400 mt-0.5 text-sm"></i>
+                        <p class="text-[11px] text-gray-700 font-bold leading-relaxed">${scene.dialogue || scene.dialog || scene.narration}</p>
+                    </div>` : ''}
+                    
+                    ${combinedAudio ? `
+                    <div class="bg-gray-50 p-3 rounded-[1rem] border border-gray-100 flex flex-col items-start mt-2">
+                        <button id="btn-audio-${sId}" type="button" onclick="window.generateAudio('${sId}')" class="text-[9px] w-full bg-white border border-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-100 font-bold tracking-wider uppercase transition"><i class="fa-solid fa-volume-high mr-1 text-emerald-500"></i> Generate Voice</button>
+                        <div id="audio-container-${sId}" class="hidden w-full mt-2">
+                            <audio id="audio-${sId}" controls class="w-full h-8 outline-none"></audio>
+                        </div>
+                    </div>` : ''}
+
+                    <div class="hidden">
+                        <textarea id="prompt-labs-${sId}">${jLabs}</textarea>
+                        <textarea id="prompt-opal-${sId}">${jOpal}</textarea>
+                        <textarea id="prompt-grok-${sId}">${jGrok}</textarea>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between mt-4 gap-2">
+                        <button type="button" onclick="window.regenerateSceneImage('${sId}')" class="text-link flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800"><i class="fa-solid fa-rotate-right"></i> RE-RENDER</button>
+                        <button type="button" onclick="window.copyText('prompt-opal-${sId}', this)" class="text-link flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800"><i class="fa-solid fa-code"></i> OPAL</button>
+                        <button type="button" onclick="window.copyText('prompt-labs-${sId}', this)" class="text-link flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800"><i class="fa-solid fa-code"></i> LABS</button>
+                        <button type="button" id="dl-${sId}" style="display:none;" onclick="window.openImageReview('${sId}')" class="text-link w-full text-white bg-gray-900 hover:bg-black mt-1"><i class="fa-solid fa-magnifying-glass-plus mr-1"></i> REVIEW & UNDUH</button>
+                    </div>
+                </div>`;
+            document.getElementById('gridMonitor')?.appendChild(el);
+        };
+
+        window.renderUGCCardHTML = function(scene, index, pData) {
+            const sId = `ugc-scene-${index}`; 
+            const rClass = pData.ratio === '16:9' ? 'aspect-16-9' : (pData.ratio === '1:1' ? 'aspect-1-1' : (pData.ratio === '4:5' ? 'aspect-4-5' : 'aspect-9-16'));
+            const jLabs = JSON.stringify(pData.devPayloads.labs_google_flow, null, 2).replace(/"/g, '&quot;');
+            const jOpal = JSON.stringify(pData.devPayloads.opal_google, null, 2).replace(/"/g, '&quot;');
+            const jGrok = JSON.stringify(pData.devPayloads.grok_ai, null, 2).replace(/"/g, '&quot;');
+            
+            let badges = `<div class="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-full text-[9px] font-bold tracking-widest uppercase flex items-center shadow-sm">
+                <i class="fa-solid fa-camera mr-1.5"></i> ${scene.shot_type || 'UGC SHOT'}
+            </div>`;
+            
+            const el = document.createElement('div'); 
+            el.className = `scene-card w-full shrink-0 bg-white border border-gray-100 shadow-sm`; 
+            el.id = `ugc-panel-${index}`;
+            
+            let combinedAudio = `${scene.narration || ""} ${scene.dialogue || scene.dialog || ""}`.trim();
+            pData.textToSpeak = combinedAudio; 
+
+            el.innerHTML = `
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-gray-900 font-extrabold text-[15px] tracking-[0.2em] font-mono uppercase">SCENE_${String(index).padStart(2, '0')}</h3>
+                    ${badges}
+                </div>
+                <div class="w-full rounded-[1rem] overflow-hidden bg-gray-50 relative border border-gray-100 mb-4 ${rClass}" id="img-${sId}">
+                    <div class="shimmer absolute inset-0 w-full h-full"></div>
+                    <div class="flex items-center justify-center absolute inset-0 z-10"><div class="spinner text-gray-900"></div></div>
+                </div>
+                <div class="flex flex-col flex-1">
+                    <p class="text-gray-800 text-[11px] leading-relaxed font-bold mb-4">${scene.visual || scene.visual_prompt}</p>
+                    <div class="bg-gray-50 p-4 rounded-[1rem] border border-gray-100 flex items-start gap-3 mt-auto">
+                        <i class="fa-solid fa-microphone text-gray-400 mt-0.5 text-sm"></i>
+                        <p class="text-[11px] text-gray-700 font-bold leading-relaxed">${scene.dialogue || scene.dialog || scene.narration}</p>
+                    </div>
+                    
+                    ${combinedAudio ? `
+                    <div class="bg-gray-50 p-3 rounded-[1rem] border border-gray-100 flex flex-col items-start mt-2">
+                        <button id="btn-audio-${sId}" type="button" onclick="window.generateAudio('${sId}')" class="text-[9px] w-full bg-white border border-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-100 font-bold tracking-wider uppercase transition"><i class="fa-solid fa-volume-high mr-1 text-emerald-500"></i> Generate Voice</button>
+                        <div id="audio-container-${sId}" class="hidden w-full mt-2">
+                            <audio id="audio-${sId}" controls class="w-full h-8 outline-none"></audio>
+                        </div>
+                    </div>` : ''}
+
+                    <div class="hidden">
+                        <textarea id="prompt-labs-${sId}">${jLabs}</textarea>
+                        <textarea id="prompt-opal-${sId}">${jOpal}</textarea>
+                        <textarea id="prompt-grok-${sId}">${jGrok}</textarea>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between mt-4 gap-2">
+                        <button type="button" class="text-link flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800" id="ugc-btn-render-${index}" onclick="window.regenerateSceneImage('${sId}')"><i class="fa-solid fa-rotate-right"></i> RE-RENDER</button>
+                        <button type="button" class="text-link flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800" onclick="window.copyText('prompt-opal-${sId}', this)"><i class="fa-solid fa-code"></i> SALIN JSON</button>
+                        <button type="button" class="text-link w-full text-white bg-gray-900 hover:bg-black mt-1" id="dl-${sId}" style="display:none;" onclick="window.openImageReview('${sId}')"><i class="fa-solid fa-magnifying-glass-plus mr-1"></i> REVIEW & UNDUH</button>
+                    </div>
+                </div>`;
+            document.getElementById('ugc_viewport')?.appendChild(el);
+        };
+
+        window.regenerateSceneImage = async function(sceneId, attempt = 1, forceMasterB64 = null) {
+            const p = window.scenePrompts[sceneId]; if(!p) return null;
+            const c = document.getElementById(`img-${sceneId}`); if(!c) return null;
+
+            c.innerHTML = `<div class="shimmer absolute inset-0 w-full h-full"></div><div class="flex flex-col items-center justify-center absolute inset-0 z-10"><div class="spinner text-gray-900 mb-2"></div><span class="text-[9px] font-mono text-gray-600 tracking-widest uppercase text-center">${attempt>1?`RETRY (${attempt})<br>I2I Mode...`:'SYNTHESIZING...'}</span></div>`;
+
+            try {
+                let finalB64 = null;
+                let promptText = p.text.substring(0, 800); 
+                
+                let imageSet = new Set();
+                let masterRefB64 = forceMasterB64 || (p.sceneIndex > 1 && window.scenePrompts[(p.isUGC ? 'ugc-scene-1' : 'scene-1')]?.finalImage ? window.scenePrompts[(p.isUGC ? 'ugc-scene-1' : 'scene-1')].finalImage : null);
+                
+                if (masterRefB64) imageSet.add(masterRefB64);
+                if (p.arr && p.arr.length > 0) { p.arr.forEach(img => { if(img) imageSet.add(img); }); }
+                
+                // LEVEL TERTINGGI: Memaksa fokus AI hanya pada 1 gambar utama (Master DNA) 
+                // Mencegah kebingungan sistem menggabungkan banyak gambar yang memicu halusinasi
+                let mainRefImage = Array.from(imageSet)[0]; 
+
+                // WAJIB IMAGE-TO-IMAGE JIKA ADA GAMBAR REFERENSI DI SEMUA TAB
+                if (mainRefImage) {
+                    let parts = [];
+                    // STRUKTUR PROMPTING TINGKAT TINGGI (STRICT EDITING) UNTUK SEMUA TAB
+                    let continuityRule = `[STRICT BACKGROUND REPLACEMENT MODE]\nCRITICAL RULES:\n1. Isolate the main subject/character/product perfectly from this image.\n2. DO NOT REDRAW OR ALTER THE MAIN SUBJECT in any way (keep it 100% pixel-perfect). Do not change faces, clothes, or text.\n3. ONLY replace the background/environment to match this description:\n\n`;
+                    parts.push({ text: continuityRule + promptText });
+                    parts.push({ inlineData: { mimeType: 'image/jpeg', data: mainRefImage } });
+
+                    const res = await window.fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`, { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            contents: [{ parts: parts }], 
+                            generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } 
+                        }) 
+                    }, 3); 
+                    
+                    finalB64 = res.candidates?.[0]?.content?.parts?.find(x => x.inlineData)?.inlineData?.data;
+                    if(!finalB64) throw new Error("Image-to-Image gagal merender gambar.");
+                } else {
+                    // TEXT-TO-IMAGE ONLY JIKA TIDAK ADA GAMBAR REFERENSI SAMA SEKALI
+                    let imgRatio = '16:9'; 
+                    if(p.apiRatio === '1:1') imgRatio = '1:1'; 
+                    else if(p.apiRatio === '9:16' || p.apiRatio === '3:4' || p.apiRatio === '4:5') imgRatio = '9:16';
+
+                    const res = await window.fetchWithRetry(`https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            instances: [{ prompt: promptText }], 
+                            parameters: { sampleCount: 1, aspect_ratio: imgRatio }
+                        })
+                    }, 3);
+                    finalB64 = res.predictions?.[0]?.bytesBase64Encoded;
+                    if(!finalB64) throw new Error("Text-to-image gagal merender gambar.");
+                }
+
+                if (finalB64) {
+                    const fB64 = await window.enforceAspectRatio(finalB64, p.ratio);
+                    window.scenePrompts[sceneId].finalImage = fB64;
+
+                    c.innerHTML = `<img src="data:image/jpeg;base64,${fB64}" class="w-full h-full object-cover bg-gray-100 cursor-pointer transition-opacity duration-1000 opacity-0 hover:opacity-90" onclick="window.openImageReview('${sceneId}')" onload="this.style.opacity=1">`;
+
+                    const dlBtn = document.getElementById(`dl-${sceneId}`); if(dlBtn) dlBtn.style.display = 'flex';
+                    if(p.isUGC) {
+                        window.ugcRenderedImages[sceneId] = fB64;
+                        const rBtn = document.getElementById(`ugc-btn-render-${p.sceneIndex}`); if(rBtn) rBtn.innerHTML = `<i class="fa-solid fa-rotate-right"></i> RE-RENDER`;
+                    }
+                    return fB64;
+                } else { throw new Error("No image data"); }
+
+            } catch (err) {
+                c.innerHTML = `<div class="flex flex-col items-center justify-center absolute inset-0 z-10 bg-gray-100"><i class="fa-solid fa-rotate text-rose-500 animate-spin text-xl mb-3"></i><p class="text-[9px] text-gray-500 font-mono tracking-widest uppercase">System Recovery...</p></div>`;
+                if(attempt < 5) {
+                    await window.sleep(3000);
+                    return await window.regenerateSceneImage(sceneId, attempt + 1, forceMasterB64);
+                } else {
+                    c.innerHTML = `
+                        <div class="flex flex-col items-center justify-center absolute inset-0 z-10 bg-gray-50 border border-red-200 rounded-[14px] p-2 text-center">
+                            <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl mb-2"></i>
+                            <p class="text-[9px] text-gray-500 font-mono leading-relaxed truncate px-2 w-full">${err.message}</p>
+                            <button onclick="window.regenerateSceneImage('${sceneId}', 1, null)" class="mt-2 px-3 py-1.5 bg-white text-gray-900 shadow-sm rounded-lg border border-gray-200 text-[9px] font-bold tracking-widest uppercase hover:bg-gray-100">RETRY MANUAL</button>
+                        </div>
+                    `;
+                    return null;
+                }
+            }
+        };
+
+        window.generateContent = async function(type) {
+            if(window.isProcessing) return window.showToast("Tunggu render saat ini!", true);
+            let prompt = "", images = [], sceneCount = 1, ratio = "16:9", artStyle = "";
+            const getVal = (id) => document.getElementById(id)?.value || "";
+            
+            const btn = document.getElementById(type === 'dashboard' ? 'btnGenDash' : (type === 'podcast' ? 'btnGenPod' : (type === 'product' ? 'btnGenProd' : 'ugc_btnGen')));
+            if(btn) btn.disabled = true;
+
+            let langAccentRule = "";
+            if (getVal('dashAccent') === 'Netral' || getVal('hostAccent') === 'Netral' || getVal('guestAccent') === 'Netral') {
+                langAccentRule = "CRITICAL INSTRUCTIONS FOR REALISM: 1. 'dialogue' and 'narration' MUST be highly natural, conversational native Indonesian (bahasa gaul/sehari-hari, luwes, ada jeda/napas). NO robotic, rigid, or CGI-like AI text. 2. 'action_and_expression' MUST include natural micro-expressions, authentic eye contact (not staring blankly), and subtle human movements. NO 'dead AI eyes' or hallucinated body morphing. ";
+            }
+
+            const systemRule = `CRITICAL SAFETY & POLICY RULE: 
+            1. STRICTLY NO NSFW, explicit, violent, gory, self-harm, sensitive, or illegal content.
+            2. ALL characters MUST be clearly described as adults (21+ years old) in safe settings. No under-aged characters.
+            3. All scenarios must be family-friendly and commercially safe.
+            4. You are the EXECUTOR AGENT. PHASE 1: Analyze images to write microscopic physical descriptions in 'dna_profiles' and a 'master_studio_setup'. PHASE 2: Create ${sceneCount} logical storyboard scenes. PHASE 3: For EVERY scene, output a 'visual_prompt'.
+            CRITICAL RULE FOR PODCAST/INTERVIEW/DUO SETUPS:
+            1. BOTH characters MUST ALWAYS remain visible in EVERY frame.
+            2. DO NOT isolate a character in a void.
+            3. If a Close-Up or Medium-Shot is needed, you MUST instruct the camera to use "Depth of Field" (e.g., "Focus on Host in the foreground, Guest heavily blurred in the background").
+            4. NEVER change the 'master_studio_setup'.
+            5. Force strict adherence to 'dna_profiles' to ensure ZERO hallucination.
+            ${langAccentRule}`;
+
+            if(type === 'dashboard') {
+                if(!getVal('dashTitle')) { if(btn) btn.disabled=false; return window.showToast("Judul kosong!", true); }
+                if(window.dnaMode === 'manual' && !window.base64CharacterImage) { if(btn) btn.disabled=false; return window.showToast("Upload foto referensi DNA!", true); }
+                sceneCount = parseInt(getVal('dashCount')); ratio = getVal('dashRatio'); artStyle = getVal('dashStyle');
+                
+                let voiceInstruction = `Gaya Suara: ${getVal('dashVoice')}.`;
+                if(getVal('dashVoice').includes("Auto")) {
+                    voiceInstruction = `CRITICAL VOICE RULE: Deeply analyze the uploaded character's DNA (age, gender, aesthetic, realistic vs 3D). Invent a HIGHLY UNIQUE, ULTRA-REALISTIC human voice profile that perfectly matches them. Specify vocal timbre, pitch, breathiness, and unique quirks. DO NOT use generic AI/CGI voice descriptions. Make it sound distinctly human and unique to this specific character.`;
+                }
+
+                let envInstruction = `Latar Lingkungan: ${getVal('dashEnv')}.`;
+                if(getVal('dashEnv').includes("Auto")) {
+                    envInstruction = `CRITICAL ENVIRONMENT RULE: Automatically design a highly detailed, immersive Environment/Setting that perfectly contextualizes the Story Title ("${getVal('dashTitle')}") and the Character's visual vibe. Specify lighting, atmosphere, and background elements.`;
+                }
+
+                let langAccentRuleDash = `CRITICAL DIALOGUE/NARRATION RULE: Text MUST be in ${getVal('dashLang')} with a ${getVal('dashAccent')} accent. You MUST adapt the vocabulary, slang, pacing, and phrasing to perfectly match the character's visual age, gender, and aesthetic (e.g., 3D character vs photorealistic). Write highly natural, conversational text with human imperfections (pauses, breaths, luwes, bahasa sehari-hari). NO formal, robotic, or generic AI tone. For 'action_and_expression', specify realistic human micro-expressions and authentic eye contact.`;
+
+                prompt = `You are the EXECUTOR AGENT. PHASE 1: Analyze images to write microscopic physical descriptions in 'dna_profiles' and a 'master_studio_setup'. PHASE 2: Create ${sceneCount} logical storyboard scenes. PHASE 3: For EVERY scene, output a 'visual_prompt'.
+                ${langAccentRuleDash}
+                TEPAT ${sceneCount} scene. Judul: "${getVal('dashTitle')}". ${envInstruction} Pencahayaan: "${getVal('dashLight')}". Pitch: "${getVal('dashPitch')}". ${voiceInstruction} 
+                RESPON STRICT JSON: {"production_title": "Judul", "hook_line": "Hook", "target_audiens": "Target", "tone_style": "Tone", "vibe_env": "Vibe", "master_studio_setup": "Exact environment details to lock", "dna_profiles": {"main_character": "Deep desc"}, "voice_characteristics": "Highly detailed ultra-realistic voice description", "retention_strategy": "Strategy", "storyboard_breakdown": {"analisis_visual": "V", "pacing_audio": "A", "potensi_viral": "P"}, "scenes": [{"shot_type": "Camera Angle", "focal_character": "Karakter Fokus", "visual_prompt": "Must include exact master_studio_setup and dna_profiles details", "camera_motion": "Motion", "action_and_expression": "Action", "narration": "Narasi sangat natural", "dialogue": "Dialog sangat natural"}]}`;
+                
+                if(window.base64CharacterImage) images.push(window.base64CharacterImage);
+            } 
+            else if(type === 'podcast') {
+                const isAuto = document.getElementById('podAutoTop')?.checked;
+                if(!isAuto && !getVal('podTopic')) { if(btn) btn.disabled=false; return window.showToast("Isi topik podcast!", true); }
+                if(!window.base64PodcastHost || !window.base64PodcastGuest) { if(btn) btn.disabled=false; return window.showToast("Upload DNA Host/Guest!", true); }
+                sceneCount = parseInt(getVal('podCount')); ratio = getVal('podRatio'); artStyle = getVal('podArt');
+                const t = isAuto ? getVal('podTopic') : getVal('podTopic');
+                prompt = `${systemRule} TEPAT ${sceneCount} scene podcast. TOPIK: "${t}". Pitch: "${getVal('podPitch')}". Gaya Diskusi: "${getVal('podStyle')}". RESPON STRICT JSON: {"production_title": "Judul", "hook_line": "Hook", "target_audiens": "Target", "tone_style": "Tone", "vibe_env": "Vibe", "master_studio_setup": "Exact environment details to lock", "dna_profiles": {"host": "Deep desc", "guest": "Deep desc", "product": "Deep desc"}, "voice_characteristics": "Voice", "retention_strategy": "Strategy", "storyboard_breakdown": {"analisis_visual": "V", "pacing_audio": "A", "potensi_viral": "P"}, "scenes": [{"shot_type": "Camera Angle", "focal_character": "Karakter Fokus", "visual_prompt": "Must include exact master_studio_setup and dna_profiles details. Follow Depth of field rules.", "camera_motion": "Motion", "action_and_expression": "Action", "narration": "Narasi kasual", "dialogue": "Dialog kasual"}]}`;
+                images = [window.base64PodcastHost, window.base64PodcastGuest, window.base64PodcastProduct].filter(Boolean);
+            }
+            else if(type === 'product') {
+                if(!window.base64ProductStudio) { if(btn) btn.disabled=false; return window.showToast("Upload foto produk!", true); }
+                sceneCount = parseInt(getVal('prodCount')); ratio = getVal('prodRatio'); artStyle = getVal('prodArt');
+                prompt = `${systemRule} TEPAT ${sceneCount} scene komersial. Produk: "${getVal('prodDescStudio')}". Kategori: "${getVal('prodCat')}". Vibe: "${getVal('prodEnv')}". Efek: "${getVal('prodFX')}". Pitch: "${getVal('prodPitch')}". RESPON STRICT JSON: {"production_title": "Judul", "hook_line": "Hook", "target_audiens": "Target", "tone_style": "Tone", "vibe_env": "Vibe", "master_studio_setup": "Exact environment details to lock", "dna_profiles": {"product_details": "Deep desc"}, "voice_characteristics": "Voice", "retention_strategy": "Strategy", "storyboard_breakdown": {"analisis_visual": "V", "pacing_audio": "A", "potensi_viral": "P"}, "scenes": [{"shot_type": "Camera Angle", "focal_character": "Karakter Fokus", "visual_prompt": "Must include exact master_studio_setup and dna_profiles details", "camera_motion": "Motion", "action_and_expression": "Action", "narration": "Narasi fonetik", "dialogue": "Dialog fonetik"}]}`;
+                images = [window.base64ProductStudio];
+            }
+            else if(type === 'contentProduct') {
+                if(!window.ugcProductBase64) { if(btn) btn.disabled=false; return window.showToast("Upload foto produk UGC!", true); }
+                sceneCount = parseInt(getVal('ugcCount')); ratio = getVal('ugcRatio'); artStyle = getVal('ugcStyle');
+                prompt = `${systemRule} TEPAT ${sceneCount} scene UGC. Brand: "${getVal('ugcBrand')}". USP: "${getVal('ugcUsp')}". Hook: "${getVal('ugcPitch')}". Tone: "${getVal('ugcTone')}". Target: "${getVal('ugcAudience')}". Visual: "${getVal('ugcStyle')}". Env: "${getVal('ugcEnv')}". Light: "${getVal('ugcLight')}". RESPON STRICT JSON: {"production_title": "Judul", "hook_line": "Hook", "target_audiens": "Target", "tone_style": "Tone", "vibe_env": "Vibe", "master_studio_setup": "Exact environment details to lock", "dna_profiles": {"creator": "Deep desc", "product": "Deep desc"}, "voice_characteristics": "Voice", "retention_strategy": "Strategy", "storyboard_breakdown": {"analisis_visual": "V", "pacing_audio": "A", "potensi_viral": "P"}, "scenes": [{"shot_type": "Camera Angle", "focal_character": "Karakter Fokus", "visual_prompt": "Must include exact master_studio_setup and dna_profiles details", "camera_motion": "Motion", "action_and_expression": "Action", "narration": "Narasi kasual", "dialogue": "Copywriting kasual"}]}`;
+                images = [window.ugcProductBase64];
+                if (window.ugcModelBase64) images.push(window.ugcModelBase64);
+            }
+
+            window.isProcessing = true; 
+            window.setAgentPopup(true);
+            
+            try {
+                let agentProgress = Promise.resolve();
+                ['nodeAnalyst', 'nodePlanner', 'nodeCreative', 'nodeDev', 'nodeExec'].forEach(id => {
+                    agentProgress = agentProgress.then(async () => { window.showAgentProgressPopup(id); await window.sleep(800); });
+                });
+
+                const apiCall = window.callGeminiJSON(prompt, images);
+                const [data] = await Promise.all([apiCall, agentProgress]);
+                
+                window.setAgentPopup(false); 
+                
+                if (type === 'contentProduct') {
+                    window.ugcCurrentData = data;
+                    window.ugcRenderedImages = {};
+                    window.scenePrompts = window.scenePrompts || {};
+                    const viewport = document.getElementById('ugc_viewport');
+                    const batchArea = document.getElementById('ugc_batchArea');
+                    let html = ``;
+                    window.productionJSON = [];
+                    
+                    const scenes = data.scenes || data.storyboard;
+                    scenes.forEach((s, i) => {
+                        let activeArray = []; 
+                        if(window.ugcProductBase64) activeArray.push(window.ugcProductBase64);
+                        if(window.ugcModelBase64) activeArray.push(window.ugcModelBase64);
+                        
+                        let apiRat = ratio; if (apiRat === '4:5') apiRat = '3:4'; else if (apiRat === '1.91:1') apiRat = '16:9'; else if (!['1:1', '3:4', '4:3', '9:16', '16:9'].includes(apiRat)) apiRat = '1:1';
+                        
+                        let envValue = getVal('ugcEnv'); let lightValue = getVal('ugcLight');
+                        const devPayloads = window.generateDeveloperPayloads(s, envValue, lightValue, artStyle, ratio, data.voice_characteristics);
+                        let contextualPrompt = s.visual_prompt || s.visual;
+                        if (data.master_studio_setup) { contextualPrompt = `STUDIO SETUP: ${data.master_studio_setup}. ACTION: ${contextualPrompt}`; }
+                        
+                        const sceneId = `ugc-scene-${i+1}`;
+                        window.scenePrompts[sceneId] = { 
+                            text: window.getStylePrompt(contextualPrompt, envValue, lightValue, artStyle), 
+                            ratio: ratio, apiRatio: apiRat, arr: activeArray, isPodcast: false, isUGC: true, sceneIndex: i+1, 
+                            devPayloads: devPayloads, dna_profiles: data.dna_profiles 
+                        };
+                        window.productionJSON.push({ scene: i+1, payloads: devPayloads });
+                    });
+                    
+                    if(viewport) {
+                        viewport.innerHTML = '';
+                        scenes.forEach((s, i) => {
+                            window.renderUGCCardHTML(s, i+1, window.scenePrompts[`ugc-scene-${i+1}`]);
+                        });
+                    }
+                    if(batchArea) batchArea.style.display = 'block';
+                    const statInfo = document.getElementById('ugc_statInfo');
+                    if(statInfo) statInfo.innerHTML = `<i class="fa-solid fa-circle-dot animate-pulse mr-2 text-emerald-500"></i> DNA DISINKRONISASI`;
+                    
+                    window.showToast("Master Script Siap! Memulai Render Berurutan...");
+                    
+                    let masterScene1Image = null;
+                    if (scenes.length > 0) {
+                        masterScene1Image = await window.regenerateSceneImage(`ugc-scene-1`, 1, null);
+                    }
+                    
+                    for (let i = 1; i < scenes.length; i++) {
+                        await window.regenerateSceneImage(`ugc-scene-${i + 1}`, 1, masterScene1Image);
+                        await window.sleep(2500); 
+                    }
+                    window.showToast("Seluruh Scene UGC Selesai Dirender!");
+
+                } else {
+                    window.switchTab('production');
+                    document.getElementById('emptyMonitor')?.classList.add('hidden');
+                    document.getElementById('outputMonitor')?.classList.remove('hidden'); document.getElementById('outputMonitor')?.classList.add('flex');
+                    
+                    document.getElementById('monitorTitle').textContent = data.production_title || 'Render Session'; 
+                    document.getElementById('monitorHook').textContent = `“ ${data.hook_line || '...'} ”`; 
+                    document.getElementById('monitorTarget').textContent = data.target_audiens || 'General';
+                    document.getElementById('monitorDna').textContent = JSON.stringify(data.dna_profiles || {}).replace(/[{}"']/g, ' ').trim() || '-';
+                    document.getElementById('monitorVoice').textContent = data.voice_characteristics || '-';
+                    document.getElementById('monitorStrategy').textContent = data.retention_strategy || data.tone_style || '-';
+
+                    if (data.storyboard_breakdown) { 
+                        document.getElementById('monitorBreakdown').classList.remove('hidden'); 
+                        document.getElementById('breakdownVisual').textContent = data.storyboard_breakdown.analisis_visual || "-"; 
+                        document.getElementById('breakdownAudio').textContent = data.storyboard_breakdown.pacing_audio || "-"; 
+                        document.getElementById('breakdownViral').textContent = data.storyboard_breakdown.potensi_viral || "-"; 
+                    } else { document.getElementById('monitorBreakdown').classList.add('hidden'); }
+                    
+                    const grid = document.getElementById('gridMonitor'); grid.innerHTML = ''; window.productionJSON = [];
+                    
+                    const scenes = data.scenes || data.storyboard;
+                    scenes.forEach((s, i) => {
+                        let activeArray = []; let isPod = type === 'podcast';
+                        if(isPod) {
+                            if(i===0) activeArray = [window.base64PodcastHost, window.base64PodcastGuest, window.base64PodcastProduct];
+                            else if(s.focal_character?.toLowerCase().includes("host")) activeArray = [window.base64PodcastHost];
+                            else if(s.focal_character?.toLowerCase().includes("tamu") || s.focal_character?.toLowerCase().includes("guest")) activeArray = [window.base64PodcastGuest];
+                            else activeArray = [window.base64PodcastProduct];
+                        } else if (type === 'product') { activeArray = [window.base64ProductStudio]; }
+                        else if (type === 'dashboard') { activeArray = [window.base64CharacterImage]; }
+                        
+                        let apiRat = ratio; if (apiRat === '4:5') apiRat = '3:4'; else if (apiRat === '1.91:1') apiRat = '16:9'; else if (!['1:1', '3:4', '4:3', '9:16', '16:9'].includes(apiRat)) apiRat = '1:1';
+
+                        let envValue = "", lightValue = "";
+                        if (type === 'dashboard') { envValue = getVal('dashEnv'); lightValue = getVal('dashLight'); }
+                        else if (type === 'podcast') { envValue = getVal('podStudio'); lightValue = "Studio Lighting"; }
+                        else if (type === 'product') { envValue = getVal('prodEnv'); lightValue = getVal('prodLight'); }
+
+                        const devPayloads = window.generateDeveloperPayloads(s, envValue, lightValue, artStyle, ratio, data.voice_characteristics);
+
+                        let contextualPrompt = s.visual_prompt || s.visual;
+                        if (data.master_studio_setup) { contextualPrompt = `STUDIO SETUP: ${data.master_studio_setup}. ACTION: ${contextualPrompt}`; }
+
+                        window.scenePrompts[`scene-${i+1}`] = { 
+                            text: window.getStylePrompt(contextualPrompt, envValue, lightValue, artStyle), 
+                            ratio: ratio, apiRatio: apiRat, arr: activeArray, isPodcast: isPod, isUGC: false, sceneIndex: i+1, 
+                            devPayloads: devPayloads, dna_profiles: data.dna_profiles 
+                        };
+                        
+                        window.productionJSON.push({ scene: i+1, payloads: devPayloads });
+                        window.renderCardHTML(s, i+1, window.scenePrompts[`scene-${i+1}`], type);
+                    });
+
+                    window.showToast("Master Script Siap! Memulai Render Berurutan...");
+                    
+                    let masterScene1Image = null;
+                    if (scenes.length > 0) {
+                        masterScene1Image = await window.regenerateSceneImage(`scene-1`, 1, null);
+                    }
+                    
+                    for (let i = 1; i < scenes.length; i++) {
+                        await window.regenerateSceneImage(`scene-${i + 1}`, 1, masterScene1Image);
+                        await window.sleep(2500); 
+                    }
+                    window.showToast("Seluruh Scene Selesai Dirender!");
+                }
+
+            } catch (err) { window.showToast(`Error: ${err.message}`, true); window.setAgentPopup(false); } 
+            finally { if(btn) btn.disabled = false; window.isProcessing = false; }
+        };
+
+        window.ugcRenderBatch = async function() {
+            if (window.ugcIsBatchRunning || !window.ugcCurrentData) return;
+            window.ugcIsBatchRunning = true; 
+            const btn = document.getElementById('ugc_btnBatchAll');
+            if(btn) btn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin mr-2"></i> MEMPROSES...`;
+            
+            let masterScene1Image = null;
+            const scenesCount = window.ugcCurrentData.scenes ? window.ugcCurrentData.scenes.length : (window.ugcCurrentData.storyboard ? window.ugcCurrentData.storyboard.length : 0);
+            
+            if (scenesCount > 0) {
+                masterScene1Image = await window.regenerateSceneImage(`ugc-scene-1`, 1, null);
+            }
+            
+            for (let i = 1; i < scenesCount; i++) {
+                const sceneId = `ugc-scene-${i+1}`;
+                if (!window.ugcRenderedImages[sceneId]) { 
+                    await window.regenerateSceneImage(sceneId, 1, masterScene1Image);
+                    await window.sleep(2500); 
+                }
+            }
+
+            window.ugcIsBatchRunning = false; 
+            if(btn) btn.innerHTML = `<i class="fa-solid fa-rocket mr-1"></i> RENDER BATCH`;
+        };
+
+        window.memoryAgentExport = async function() {
+            if(Object.keys(window.scenePrompts).length === 0) return window.showToast("Tidak ada data untuk diekspor!", true);
+            window.showToast("Memory Agent: Compressing Data...");
+            try {
+                const zip = new JSZip();
+                zip.file("ZHR_Master_Script_Developer.json", JSON.stringify(window.productionJSON, null, 2));
+                let imgCount = 0;
+                for (const [sId, pData] of Object.entries(window.scenePrompts)) {
+                    if(pData.finalImage) { zip.file(`${sId}.jpg`, pData.finalImage, {base64: true}); imgCount++; }
+                }
+                if(imgCount === 0) { window.showToast("Gambar belum dirender. Harap render terlebih dahulu.", true); return; }
+                zip.generateAsync({type:"blob"}).then(function(content) { saveAs(content, `ZHR_Memory_Export_${Date.now()}.zip`); window.showToast("Memory Agent: ZIP Berhasil Diunduh!"); });
+            } catch (e) { window.showToast("Memory Agent Error: " + e.message, true); }
+        };
+
+        window.copyText = function(id, btnElement) {
+            try {
+                const text = document.getElementById(id)?.value || "";
+                if (!text) {
+                    window.showToast("Data JSON belum siap!", true);
+                    return;
+                }
+                const el = document.createElement('textarea'); 
+                el.value = text; 
+                el.style.position = "fixed"; 
+                el.style.left = "-9999px"; 
+                document.body.appendChild(el); 
+                el.select(); 
+                document.execCommand('copy'); 
+                document.body.removeChild(el);
+                
+                if (btnElement) { 
+                    const originalHTML = btnElement.innerHTML; 
+                    btnElement.innerHTML = `<i class="fa-solid fa-check"></i> TERSALIN`; 
+                    btnElement.classList.add('text-emerald-500');
+                    setTimeout(() => { 
+                        btnElement.innerHTML = originalHTML; 
+                        btnElement.classList.remove('text-emerald-500'); 
+                    }, 2000); 
+                }
+            } catch (err) {
+                window.showToast("Gagal menyalin JSON.", true);
+                console.error("Copy error:", err);
+            }
+        };
+
+        window.zhrDownloadImage = function(sceneId) {
+            try {
+                const p = window.scenePrompts[sceneId];
+                let base64Data = null;
+                if (p && p.finalImage) {
+                    base64Data = p.finalImage;
+                } else if (window.ugcRenderedImages && window.ugcRenderedImages[sceneId]) {
+                    base64Data = window.ugcRenderedImages[sceneId];
+                }
+                
+                if(!base64Data) {
+                    window.showToast("Gambar belum tersedia untuk diunduh!", true);
+                    return;
+                }
+                const link = document.createElement('a'); 
+                link.href = `data:image/jpeg;base64,${base64Data}`; 
+                link.download = `ZHR-Engine-${sceneId}-${Date.now()}.jpg`; 
+                document.body.appendChild(link); 
+                link.click(); 
+                document.body.removeChild(link); 
+                window.showToast("Gambar Berhasil Diunduh!");
+            } catch (error) {
+                window.showToast("Gagal mengunduh gambar.", true);
+                console.error("Download error:", error);
+            }
+        };
+    </script>
+</body>
+</html>
